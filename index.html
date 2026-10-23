@@ -333,6 +333,21 @@ section.panel{padding:0}
 .instalar svg{width:15px;height:15px;vertical-align:-2px;color:var(--oro2)}
 .instalar .si{flex:none;border:0;border-radius:999px;padding:10px 16px;font:600 13px var(--sans);letter-spacing:.06em;text-transform:uppercase;background:linear-gradient(120deg,var(--oro3),var(--oro2) 55%,var(--oro));color:#1a1408;cursor:pointer}
 .instalar .no{flex:none;width:32px;height:32px;border-radius:50%;border:1px solid rgba(201,164,92,.4);background:none;color:var(--oro2);font-size:18px;line-height:1;cursor:pointer}
+.gal button.vid{position:relative;background:#1b1916;display:grid;place-items:center}
+.gal button.vid img,.g-vid img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.75}
+.play{position:relative;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:rgba(14,13,12,.7);border:1px solid var(--oro);color:var(--oro2);font-size:20px;padding-left:3px}
+.red{position:absolute;left:8px;right:8px;bottom:8px;font-size:12.5px;color:var(--marfil);text-shadow:0 1px 6px #000;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-vid{width:min(900px,100%);aspect-ratio:16/9}
+.lb-vid iframe{width:100%;height:100%;border:0;border-radius:12px}
+.g-admin{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.g-it{position:relative;border-radius:12px;overflow:hidden;background:#1b1916;aspect-ratio:1}
+.g-it>img,.g-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.g-vid{display:grid;place-items:center}
+.g-vid .play{width:36px;height:36px;font-size:14px}
+.g-acc{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;gap:4px;padding:5px;background:linear-gradient(transparent,rgba(0,0,0,.75))}
+.g-acc button{width:30px;height:30px;border-radius:50%;border:0;background:rgba(246,242,235,.92);color:var(--tinta);font-size:15px;line-height:1;cursor:pointer}
+.g-acc button:disabled{opacity:.35}
+.g-acc .rojo{background:#f3d9d4;color:#a3443a}
 </style>
 </head>
 <body>
@@ -483,7 +498,7 @@ section.panel{padding:0}
 <!-- Galería -->
 <section class="panel oscuro" id="p-galeria" aria-label="Galería">
   <div class="cab"><button data-atras aria-label="Volver">‹</button><h3>Galería</h3></div>
-  <div class="cuerpo"><div class="in"><p style="color:#a69c8f;margin-bottom:16px">Un vistazo a la experiencia Enzō. Toca una foto para verla en grande.</p><div class="gal" id="gal"></div></div></div>
+  <div class="cuerpo"><div class="in"><p style="color:#a69c8f;margin-bottom:16px">Un vistazo a la experiencia Enzō. Toca una foto o un video para verlo en grande.</p><div class="gal" id="gal"></div></div></div>
 </section>
 
 <!-- Agenda -->
@@ -527,7 +542,7 @@ section.panel{padding:0}
   <button class="cancel" data-atras>Cancelar</button>
 </div>
 
-<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Foto"><button class="x" aria-label="Cerrar">×</button><img alt=""></div>
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Foto o video"><button class="x" aria-label="Cerrar">×</button><img alt=""><div class="lb-vid" id="lb-vid" hidden></div></div>
 <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -626,7 +641,7 @@ const precioHTML = s => s.precio ? `${esc(s.precio)}${s.antes ? ` <s style="font
 // Para que todas las personas vean lo mismo se conecta a Firebase (gratis). Esta capa es la única que cambia.
 const ReservasPrueba = (() => {
   const KEY = "enzo_citas_v1";
-  let mem = [], sugMem = [];
+  let mem = [], sugMem = [], galMem = null;
   const leer = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return mem; } };
   const guardar = l => { mem = l; try { localStorage.setItem(KEY, JSON.stringify(l)); } catch {} };
   // Algunas citas de ejemplo para que se vean espacios "Reservado"
@@ -657,6 +672,12 @@ const ReservasPrueba = (() => {
       const nueva = { ...c, id: "c" + Date.now().toString(36), creada: Date.now() };
       guardar([...leer(), nueva]); return nueva;
     },
+    galeria(){ let l; try { l = JSON.parse(localStorage.getItem(KEY + "_gal") || "null"); } catch { l = galMem; } return l && l.sort((a, b) => a.orden - b.orden); },
+    async guardarGal(l){ galMem = l; try { localStorage.setItem(KEY + "_gal", JSON.stringify(l)); } catch { throw new Error("lleno"); } },
+    async subirFoto(data){ const l = this.galeria() || []; await this.guardarGal([...l, { id:"g" + Date.now().toString(36), tipo:"foto", data, orden: Date.now() }]); },
+    async agregarVideo(url, titulo){ const l = this.galeria() || []; await this.guardarGal([...l, { id:"g" + Date.now().toString(36), tipo:"video", url, titulo, orden: Date.now() }]); },
+    async borrarGal(id){ await this.guardarGal((this.galeria() || []).filter(x => x.id !== id)); },
+    async moverGal(a, b){ const l = this.galeria() || []; const A = l.find(x => x.id === a), B = l.find(x => x.id === b); [A.orden, B.orden] = [B.orden, A.orden]; await this.guardarGal(l); },
     sugerencias(){ try { return JSON.parse(localStorage.getItem(KEY + "_sug") || "[]"); } catch { return sugMem; } },
     async enviarSug(x){ const l = [{ ...x, id: "s" + Date.now().toString(36), fecha: Date.now() }, ...this.sugerencias()]; sugMem = l; try { localStorage.setItem(KEY + "_sug", JSON.stringify(l)); } catch {} },
     async borrarSug(id){ const l = this.sugerencias().filter(x => x.id !== id); sugMem = l; try { localStorage.setItem(KEY + "_sug", JSON.stringify(l)); } catch {} },
@@ -670,7 +691,7 @@ async function crearReservasFirebase(){
   const base = "https://www.gstatic.com/firebasejs/10.12.2/";
   const [{ initializeApp }, F, A] = await Promise.all([import(base + "firebase-app.js"), import(base + "firebase-firestore.js"), import(base + "firebase-auth.js")]);
   const app = initializeApp(FIREBASE), db = F.getFirestore(app), auth = A.getAuth(app);
-  let oc = new Set(), citas = [], quitarCitas = null, sugs = [], quitarSugs = null;
+  let oc = new Set(), citas = [], quitarCitas = null, sugs = [], quitarSugs = null, gal = null;
   const R = {
     prueba: false, nicole: false,
     ocupados: () => oc,
@@ -690,12 +711,22 @@ async function crearReservasFirebase(){
       for (let m = c.ini; m < c.ini + c.dur; m += 30) b.delete(F.doc(db, "ocupados", c.fecha + "_" + hhmm(m)));
       await b.commit();
     },
+    galeria: () => gal,
+    async subirFoto(data){ await F.addDoc(F.collection(db, "galeria"), { tipo:"foto", data, url:"", titulo:"", orden: Date.now() }); },
+    async agregarVideo(url, titulo){ await F.addDoc(F.collection(db, "galeria"), { tipo:"video", data:"", url, titulo, orden: Date.now() }); },
+    async borrarGal(id){ await F.deleteDoc(F.doc(db, "galeria", id)); },
+    async moverGal(a, b){ const A = gal.find(x => x.id === a), B = gal.find(x => x.id === b); const w = F.writeBatch(db);
+      w.update(F.doc(db, "galeria", a), { orden: B.orden }); w.update(F.doc(db, "galeria", b), { orden: A.orden }); await w.commit(); },
     sugerencias: () => sugs,
     async enviarSug(x){ await F.addDoc(F.collection(db, "sugerencias"), { texto:x.texto, nombre:x.nombre, fecha:F.serverTimestamp() }); },
     async borrarSug(id){ await F.deleteDoc(F.doc(db, "sugerencias", id)); },
     async entrar(clave){ await A.signInWithEmailAndPassword(auth, NICOLE_EMAIL, clave); },
     salir(){ A.signOut(auth); }
   };
+  F.onSnapshot(F.collection(db, "galeria"), snap => {
+    gal = snap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => a.orden - b.orden);
+    pintarGaleria(); if (pila.includes("p-nicole") && nVista === "gal") pintarNicole();
+  }, e => console.warn("galeria", e));
   const hoy = iso(crAhora()), lim = iso(masDias(deIso(hoy), SEMANAS_ADELANTE * 7 + 7));
   F.onSnapshot(F.query(F.collection(db, "ocupados"), F.where("fecha", ">=", hoy), F.where("fecha", "<=", lim)), snap => {
     oc = new Set(snap.docs.map(d => d.id));
@@ -719,7 +750,7 @@ async function crearReservasFirebase(){
   return R;
 }
 // Mientras Firebase carga, el calendario muestra todo libre pero no deja confirmar.
-const ReservasCargando = { prueba:false, nicole:false, ocupados:() => new Set(), todas:() => [], sugerencias:() => [],
+const ReservasCargando = { prueba:false, nicole:false, ocupados:() => new Set(), todas:() => [], sugerencias:() => [], galeria:() => null,
   async enviarSug(){ throw new Error("cargando"); }, async borrarSug(){},
   async reservar(){ throw new Error("cargando"); }, async cancelar(){}, async entrar(){ throw new Error("cargando"); }, salir(){} };
 let Reservas = FIREBASE ? ReservasCargando : ReservasPrueba;
@@ -988,7 +1019,28 @@ function pintarNicole(){
     return;
   }
   const sugs = Reservas.sugerencias();
-  const pest = `<div class="seg2" style="margin-bottom:16px"><button class="chip${nVista === "citas" ? " si" : ""}" data-nv="citas">Citas</button><button class="chip${nVista === "sug" ? " si" : ""}" data-nv="sug">Sugerencias${sugs.length ? ` (${sugs.length})` : ""}</button></div>`;
+  const pest = `<div class="seg2" style="margin-bottom:16px"><button class="chip${nVista === "citas" ? " si" : ""}" data-nv="citas">Citas</button><button class="chip${nVista === "sug" ? " si" : ""}" data-nv="sug">Sugerencias${sugs.length ? ` (${sugs.length})` : ""}</button><button class="chip${nVista === "gal" ? " si" : ""}" data-nv="gal">Galería</button></div>`;
+  if (nVista === "gal") {
+    const l = Reservas.galeria() || [];
+    box.innerHTML = pest.replace('class="seg2"', 'class="seg2" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px"') + `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="chip" id="n-salir">Salir</button></div>
+      <div class="paso"><span class="lbl">Agregar fotos</span>
+        <div><label class="btn btn-oro" style="width:100%;padding:15px;cursor:pointer;margin:0" for="g-fotos">📷 Subir fotos del celular</label></div>
+        <input id="g-fotos" type="file" accept="image/*" multiple hidden>
+        <p class="prueba" style="text-align:left">Las fotos se ajustan solas para que la página cargue rápido.${Reservas.prueba ? " En la versión de prueba se guardan solo en este celular." : ""}</p></div>
+      <div class="paso"><span class="lbl">Agregar video</span>
+        <div class="campo"><input id="g-video-url" inputmode="url" placeholder="Link de YouTube, Instagram, TikTok o Facebook"></div>
+        <div class="campo"><input id="g-video-tit" maxlength="60" placeholder="Título (opcional), ej.: Así es el masaje con piedras"></div>
+        <button class="btn btn-osc" style="width:100%" id="g-video-ok">Agregar video</button></div>
+      <div class="paso"><span class="lbl">En la galería ahora (${l.length || FOTOS.length})</span>
+        ${l.length ? `<div class="g-admin">${l.map((x, i) => `<div class="g-it">
+            ${x.tipo === "foto" ? `<img src="${x.data}" alt="">` : `<div class="g-vid">${miniVideo(x)}</div>`}
+            <div class="g-acc"><button data-gal-mover="${x.id}:-1" ${i === 0 ? "disabled" : ""} aria-label="Mover antes">‹</button><button data-gal-mover="${x.id}:1" ${i === l.length - 1 ? "disabled" : ""} aria-label="Mover después">›</button><button class="rojo" data-gal-borrar="${x.id}" aria-label="Quitar">🗑</button></div></div>`).join("")}</div>
+          <button class="chip" style="margin-top:12px" id="g-restaurar">Volver a las fotos originales</button>`
+        : `<div class="vacio">Ahora se muestran las ${FOTOS.length} fotos originales. Cuando subas la primera foto o video, la galería mostrará solo lo tuyo.</div>`}</div>`;
+    $("#g-fotos").addEventListener("change", subirFotos);
+    return;
+  }
   if (nVista === "sug") {
     box.innerHTML = pest + `<div style="display:flex;justify-content:flex-end;margin-bottom:6px"><button class="chip" id="n-salir">Salir</button></div>` + (sugs.length ? sugs.map(x => `<div class="cita-a"><div class="h"><b style="font-size:17px">${esc(x.nombre || "Anónimo")}</b><span>${new Date(x.fecha).toLocaleDateString("es-CR", { day:"numeric", month:"short" })}</span></div>
       <p style="white-space:pre-wrap">${esc(x.texto)}</p><div class="acc"><button class="rojo" data-borrar-sug="${x.id}">Borrar</button></div></div>`).join("") : `<div class="vacio">Todavía no hay sugerencias.</div>`);
@@ -1031,6 +1083,16 @@ $("#nicole").addEventListener("click", async e => {
     open(gcal(c, true), "_blank", "noopener"); setTimeout(pintarNicole, 400); return;
   }
   if (b.dataset.nv) { nVista = b.dataset.nv; pintarNicole(); return; }
+  if (b.dataset.galBorrar) { if (!confirm("¿Quitar esto de la galería?")) return; try { await Reservas.borrarGal(b.dataset.galBorrar); pintarGaleria(); pintarNicole(); } catch { toast("No se pudo quitar. Revisa tu conexión."); } return; }
+  if (b.dataset.galMover) { const [id, dir] = b.dataset.galMover.split(":"); const l = Reservas.galeria() || []; const i = l.findIndex(x => x.id === id), j = i + (+dir);
+    if (j < 0 || j >= l.length) return; try { await Reservas.moverGal(id, l[j].id); pintarGaleria(); pintarNicole(); } catch { toast("No se pudo mover."); } return; }
+  if (b.id === "g-video-ok") {
+    const url = $("#g-video-url").value.trim(), titulo = $("#g-video-tit").value.trim().slice(0, 60);
+    if (!infoVideo(url)) return toast("Pega un link de YouTube, Instagram, TikTok o Facebook.");
+    b.disabled = true; try { await Reservas.agregarVideo(url, titulo); toast("Video agregado a la galería"); pintarGaleria(); pintarNicole(); } catch { toast("No se pudo agregar. Revisa tu conexión."); b.disabled = false; } return;
+  }
+  if (b.id === "g-restaurar") { if (!confirm("¿Volver a las fotos originales? Se quitan las que subiste.")) return;
+    for (const x of [...(Reservas.galeria() || [])]) { try { await Reservas.borrarGal(x.id); } catch {} } pintarGaleria(); pintarNicole(); return; }
   if (b.dataset.borrarSug) { if (!confirm("¿Borrar esta sugerencia?")) return; try { await Reservas.borrarSug(b.dataset.borrarSug); pintarNicole(); } catch { toast("No se pudo borrar. Revisa tu conexión."); } return; }
   if (b.id === "n-salir") { Reservas.salir(); pintarNicole(); }
   if (b.dataset.cancel) { if (!confirm("¿Cancelar esta cita? El espacio queda libre otra vez.")) return; try { const estaba = enCalendario(Reservas.todas().find(x => x.id === b.dataset.cancel) || {}); await Reservas.cancelar(b.dataset.cancel); pintarNicole(); toast(estaba ? "Cita cancelada. Bórrala también de tu calendario." : "Cita cancelada"); } catch { toast("No se pudo cancelar. Revisa tu conexión."); } }
@@ -1057,9 +1119,68 @@ $("#sug-form").addEventListener("submit", async e => {
 $("#sug-otra").addEventListener("click", () => { $("#sug-texto").value = ""; $("#sug-form").hidden = false; $("#sug-ok").hidden = true; });
 
 // ================== GALERÍA ==================
-$("#gal").innerHTML = FOTOS.map((f, i) => `<button data-i="${i}" class="${i === 0 ? "ancha" : ""}" aria-label="Ver foto ${i + 1}"><img src="${f}" alt="" loading="lazy"></button>`).join("");
-$("#gal").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; $("#lb img").src = FOTOS[b.dataset.i]; $("#lb").classList.add("on"); });
-$("#lb").addEventListener("click", e => { if (e.target.tagName !== "IMG") $("#lb").classList.remove("on"); });
+function infoVideo(url){
+  let u; try { u = new URL(url); } catch { return null; }
+  const h = u.hostname.replace(/^www\.|^m\./, "");
+  if (h === "youtu.be") return { red:"YouTube", yt: u.pathname.slice(1).split("/")[0] };
+  if (h.endsWith("youtube.com")) { const id = u.searchParams.get("v") || (u.pathname.match(/\/(shorts|embed|live)\/([\w-]+)/) || [])[2]; return id ? { red:"YouTube", yt:id } : { red:"YouTube" }; }
+  if (h.endsWith("instagram.com")) return { red:"Instagram" };
+  if (h.endsWith("tiktok.com")) return { red:"TikTok" };
+  if (h.endsWith("facebook.com") || h === "fb.watch") return { red:"Facebook" };
+  return null;
+}
+function miniVideo(x){
+  const v = infoVideo(x.url) || { red:"Video" };
+  return `${v.yt ? `<img src="https://i.ytimg.com/vi/${v.yt}/hqdefault.jpg" alt="" loading="lazy">` : ""}<span class="play">▶</span><span class="red">${esc(x.titulo || v.red)}</span>`;
+}
+let itemsGal = [];
+function pintarGaleria(){
+  const l = Reservas.galeria();
+  itemsGal = l && l.length ? l : FOTOS.map(f => ({ tipo:"foto", data:f }));
+  $("#gal").innerHTML = itemsGal.map((x, i) => x.tipo === "foto"
+    ? `<button data-i="${i}" class="${i === 0 ? "ancha" : ""}" aria-label="Ver foto ${i + 1}"><img src="${x.data}" alt="" loading="lazy"></button>`
+    : `<button data-i="${i}" class="vid${i === 0 ? " ancha" : ""}" aria-label="Ver video ${esc(x.titulo || "")}">${miniVideo(x)}</button>`).join("");
+}
+pintarGaleria();
+$("#gal").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return; const x = itemsGal[b.dataset.i];
+  if (x.tipo === "video") {
+    const v = infoVideo(x.url) || {};
+    if (!v.yt) { open(x.url, "_blank", "noopener"); return; }
+    $("#lb img").hidden = true; $("#lb-vid").hidden = false;
+    $("#lb-vid").innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${v.yt}?autoplay=1&rel=0" title="${esc(x.titulo || "Video")}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+  } else { $("#lb-vid").hidden = true; $("#lb-vid").innerHTML = ""; $("#lb img").hidden = false; $("#lb img").src = x.data; }
+  $("#lb").classList.add("on");
+});
+$("#lb").addEventListener("click", e => { if (e.target.tagName !== "IMG" && e.target.tagName !== "IFRAME") { $("#lb").classList.remove("on"); $("#lb-vid").innerHTML = ""; } });
+
+// Subir fotos: se reducen en el celular antes de guardarlas
+function reducir(file, max = 1280, calidad = 0.8){
+  return new Promise((ok, mal) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => {
+      let { width:w, height:h } = img; const k = Math.min(1, max / Math.max(w, h)); w = Math.round(w * k); h = Math.round(h * k);
+      const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      let q = calidad, d = c.toDataURL("image/jpeg", q);
+      while (d.length > 700000 && q > 0.4) { q -= 0.1; d = c.toDataURL("image/jpeg", q); }
+      ok(d);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); mal(new Error("foto")); };
+    img.src = url;
+  });
+}
+async function subirFotos(e){
+  const files = [...e.target.files]; if (!files.length) return;
+  let n = 0;
+  for (const f of files) {
+    toast(`Subiendo foto ${n + 1} de ${files.length}…`);
+    try { await Reservas.subirFoto(await reducir(f)); n++; }
+    catch (ex) { toast(ex.message === "lleno" ? "Ya no caben más fotos en la versión de prueba." : "Una foto no se pudo subir."); break; }
+  }
+  if (n) toast(`${n} foto${n === 1 ? "" : "s"} agregada${n === 1 ? "" : "s"} a la galería`);
+  pintarGaleria(); pintarNicole();
+}
 document.addEventListener("keydown", e => { if (e.key === "Escape") { if ($("#lb").classList.contains("on")) $("#lb").classList.remove("on"); else atras(); } });
 
 // ================== UBICACIONES ==================

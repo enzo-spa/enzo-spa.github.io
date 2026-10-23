@@ -42,6 +42,19 @@ service cloud.firestore {
       allow read, delete: if esNicole();
     }
 
+    // Galería: todos la ven; solo Nicole sube fotos (comprimidas) o links de video.
+    match /galeria/{id} {
+      allow read: if true;
+      allow create, update: if esNicole()
+        && request.resource.data.keys().hasOnly(['tipo','data','url','titulo','orden'])
+        && request.resource.data.tipo in ['foto', 'video']
+        && request.resource.data.data is string && request.resource.data.data.size() < 950000
+        && request.resource.data.url is string && request.resource.data.url.size() <= 300
+        && request.resource.data.titulo is string && request.resource.data.titulo.size() <= 60
+        && request.resource.data.orden is number;
+      allow delete: if esNicole();
+    }
+
     match /{path=**} { allow read, write: if false; }
   }
 }
