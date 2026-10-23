@@ -324,6 +324,15 @@ section.panel{padding:0}
 .desp-op.si{background:#f7f0e2;font-weight:500}
 .desp-op.si::after{content:"✓";color:var(--oro3);margin-left:6px}
 .desp-op:last-child{border-bottom:0}
+.instalar{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:45;max-width:520px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:12px 12px 12px 14px;border-radius:18px;background:rgba(24,22,20,.97);border:1px solid rgba(201,164,92,.55);color:var(--marfil);box-shadow:0 18px 40px -12px rgba(0,0,0,.7);transform:translateY(140%);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.instalar.on{transform:none}
+.instalar img{width:46px;height:46px;border-radius:12px;flex:none}
+.instalar .txt{flex:1;min-width:0;font-size:13.5px;line-height:1.35;color:#d9d1c4}
+.instalar .txt b{color:var(--marfil)}
+.instalar .txt>b{display:block;font-family:var(--serif);font-size:18px;font-weight:600;color:var(--oro2)}
+.instalar svg{width:15px;height:15px;vertical-align:-2px;color:var(--oro2)}
+.instalar .si{flex:none;border:0;border-radius:999px;padding:10px 16px;font:600 13px var(--sans);letter-spacing:.06em;text-transform:uppercase;background:linear-gradient(120deg,var(--oro3),var(--oro2) 55%,var(--oro));color:#1a1408;cursor:pointer}
+.instalar .no{flex:none;width:32px;height:32px;border-radius:50%;border:1px solid rgba(201,164,92,.4);background:none;color:var(--oro2);font-size:18px;line-height:1;cursor:pointer}
 </style>
 </head>
 <body>
@@ -1009,6 +1018,29 @@ if ("IntersectionObserver" in window) {
 
 // Instalar como app
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+(() => {
+  const instalada = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  if (instalada) return;
+  const KEY = "enzo_instalar_oculto";
+  let oculto = 0; try { oculto = +localStorage.getItem(KEY) || 0; } catch {}
+  if (Date.now() - oculto < 3 * 864e5) return;   // si la cerró, no molestar por 3 días
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent) && !/CriOS|FxiOS/i.test(navigator.userAgent);
+  let evento = null;
+  function mostrar(){
+    if (document.getElementById("instalar")) return;
+    const el = document.createElement("div"); el.id = "instalar"; el.className = "instalar";
+    el.innerHTML = `<img src="icon-192.png" alt=""><div class="txt"><b>Instala la app de Enzō Spa</b><span>${ios ? 'Toca <b>Compartir</b> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg> y luego <b>Agregar a inicio</b>.' : "Agenda tus citas más rápido desde tu celular."}</span></div>
+      ${ios ? "" : '<button class="si">Instalar</button>'}<button class="no" aria-label="Cerrar">×</button>`;
+    document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("on"));
+    el.querySelector(".no").onclick = () => { try { localStorage.setItem(KEY, Date.now()); } catch {} cerrar(); };
+    const si = el.querySelector(".si");
+    if (si) si.onclick = async () => { if (!evento) return; evento.prompt(); const r = await evento.userChoice.catch(() => ({})); evento = null; if (r.outcome === "accepted") toast("¡Listo! Busca Enzō Spa en tu pantalla de inicio"); cerrar(); };
+  }
+  function cerrar(){ const el = document.getElementById("instalar"); if (!el) return; el.classList.remove("on"); setTimeout(() => el.remove(), 350); }
+  addEventListener("beforeinstallprompt", e => { e.preventDefault(); evento = e; setTimeout(mostrar, 1800); });
+  addEventListener("appinstalled", cerrar);
+  if (ios) setTimeout(mostrar, 2500);
+})();
 
 if (FIREBASE) crearReservasFirebase().then(r => {
   Reservas = r;
