@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function esNicole() {
+      return request.auth != null && request.auth.token.email == 'nicole@enzospa.app';
+    }
+
+    // Citas: cualquiera puede reservar; solo Nicole las ve y las cancela.
+    match /citas/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['fecha','ini','dur','servicio','lugar','nombre','tel','nota','creada'])
+        && request.resource.data.fecha is string && request.resource.data.fecha.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.ini is int && request.resource.data.ini >= 0 && request.resource.data.ini < 1440
+        && request.resource.data.dur in [30, 60, 90, 120]
+        && request.resource.data.lugar in ['spa', 'estudio']
+        && request.resource.data.servicio is string && request.resource.data.servicio.size() <= 60
+        && request.resource.data.nombre is string && request.resource.data.nombre.size() >= 2 && request.resource.data.nombre.size() <= 50
+        && request.resource.data.tel is string && request.resource.data.tel.size() <= 20
+        && request.resource.data.nota is string && request.resource.data.nota.size() <= 300
+        && request.resource.data.creada == request.time;
+      allow read, delete: if esNicole();
+    }
+
+    // Espacios ocupados: todos los ven (sin datos personales). Un espacio ya tomado no se puede volver a tomar.
+    match /ocupados/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['fecha','cita'])
+        && request.resource.data.fecha is string && request.resource.data.fecha.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && id.matches('^' + request.resource.data.fecha + '_[0-9]{4}$')
+        && request.resource.data.cita is string
+        && existsAfter(/databases/$(database)/documents/citas/$(request.resource.data.cita));
+      allow delete: if esNicole();
+    }
+
+    match /{path=**} { allow read, write: if false; }
+  }
+}
