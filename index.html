@@ -465,6 +465,7 @@ section.panel{padding:0}
   <button class="it" data-reservar style="margin-top:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Agendar cita</button>
   <div id="menu-serv" hidden></div>
   <h4>Más</h4>
+  <button class="it" data-abrir="p-sug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z"/></svg>Sugerencias</button>
   <button class="it" data-abrir="p-galeria"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>Galería</button>
   <button class="it" data-ir="#horario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Horario</button>
   <button class="it" data-ir="#contacto"><svg><use href="#pin"/></svg>Ubicación y contacto</button>
@@ -489,6 +490,25 @@ section.panel{padding:0}
 <section class="panel" id="p-agenda" aria-label="Agendar cita">
   <div class="cab"><button data-atras aria-label="Volver">‹</button><h3>Agendar cita</h3></div>
   <div class="cuerpo"><div class="in" id="agenda"></div></div>
+</section>
+
+<!-- Sugerencias -->
+<section class="panel" id="p-sug" aria-label="Sugerencias">
+  <div class="cab"><button data-atras aria-label="Volver">‹</button><h3>Sugerencias</h3></div>
+  <div class="cuerpo"><div class="in">
+    <form id="sug-form" novalidate>
+      <h2 style="font-family:var(--serif);font-size:30px;font-weight:600;line-height:1.15">¿Cómo podemos mejorar?</h2>
+      <p style="color:#5d554c;margin:8px 0 20px">Tu opinión le ayuda a Nicole a mejorar cada día. Puedes enviarla sin nombre.</p>
+      <div class="campo"><label for="sug-texto">Tu sugerencia</label><textarea id="sug-texto" rows="5" maxlength="600" placeholder="Ej.: me gustaría que tuvieran un paquete para parejas"></textarea></div>
+      <div class="campo"><label for="sug-nombre">Tu nombre (opcional)</label><input id="sug-nombre" maxlength="40" autocomplete="name" placeholder="Puedes dejarlo en blanco"></div>
+      <p class="error" id="sug-err"></p>
+      <button class="btn btn-oro" style="width:100%;padding:16px" id="sug-enviar" type="submit">Enviar sugerencia</button>
+    </form>
+    <div class="listo" id="sug-ok" hidden>
+      <div class="ok">✓</div><h2>¡Gracias!</h2><p>Nicole ya recibió tu sugerencia.</p>
+      <div class="bloque"><button class="btn btn-osc" id="sug-otra" type="button">Enviar otra</button><button class="btn btn-linea" style="color:var(--tinta);border-color:var(--oro)" data-atras type="button">Volver</button></div>
+    </div>
+  </div></div>
 </section>
 
 <!-- Acceso de Nicole -->
@@ -606,7 +626,7 @@ const precioHTML = s => s.precio ? `${esc(s.precio)}${s.antes ? ` <s style="font
 // Para que todas las personas vean lo mismo se conecta a Firebase (gratis). Esta capa es la única que cambia.
 const ReservasPrueba = (() => {
   const KEY = "enzo_citas_v1";
-  let mem = [];
+  let mem = [], sugMem = [];
   const leer = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return mem; } };
   const guardar = l => { mem = l; try { localStorage.setItem(KEY, JSON.stringify(l)); } catch {} };
   // Algunas citas de ejemplo para que se vean espacios "Reservado"
@@ -637,6 +657,9 @@ const ReservasPrueba = (() => {
       const nueva = { ...c, id: "c" + Date.now().toString(36), creada: Date.now() };
       guardar([...leer(), nueva]); return nueva;
     },
+    sugerencias(){ try { return JSON.parse(localStorage.getItem(KEY + "_sug") || "[]"); } catch { return sugMem; } },
+    async enviarSug(x){ const l = [{ ...x, id: "s" + Date.now().toString(36), fecha: Date.now() }, ...this.sugerencias()]; sugMem = l; try { localStorage.setItem(KEY + "_sug", JSON.stringify(l)); } catch {} },
+    async borrarSug(id){ const l = this.sugerencias().filter(x => x.id !== id); sugMem = l; try { localStorage.setItem(KEY + "_sug", JSON.stringify(l)); } catch {} },
     async cancelar(id){
       if (id.startsWith("ej")) { borradosEj.add(id); try { localStorage.setItem(KEY + "_ej", JSON.stringify([...borradosEj])); } catch {} }
       else guardar(leer().filter(c => c.id !== id));
@@ -647,7 +670,7 @@ async function crearReservasFirebase(){
   const base = "https://www.gstatic.com/firebasejs/10.12.2/";
   const [{ initializeApp }, F, A] = await Promise.all([import(base + "firebase-app.js"), import(base + "firebase-firestore.js"), import(base + "firebase-auth.js")]);
   const app = initializeApp(FIREBASE), db = F.getFirestore(app), auth = A.getAuth(app);
-  let oc = new Set(), citas = [], quitarCitas = null;
+  let oc = new Set(), citas = [], quitarCitas = null, sugs = [], quitarSugs = null;
   const R = {
     prueba: false, nicole: false,
     ocupados: () => oc,
@@ -667,6 +690,9 @@ async function crearReservasFirebase(){
       for (let m = c.ini; m < c.ini + c.dur; m += 30) b.delete(F.doc(db, "ocupados", c.fecha + "_" + hhmm(m)));
       await b.commit();
     },
+    sugerencias: () => sugs,
+    async enviarSug(x){ await F.addDoc(F.collection(db, "sugerencias"), { texto:x.texto, nombre:x.nombre, fecha:F.serverTimestamp() }); },
+    async borrarSug(id){ await F.deleteDoc(F.doc(db, "sugerencias", id)); },
     async entrar(clave){ await A.signInWithEmailAndPassword(auth, NICOLE_EMAIL, clave); },
     salir(){ A.signOut(auth); }
   };
@@ -678,6 +704,11 @@ async function crearReservasFirebase(){
   A.onAuthStateChanged(auth, u => {
     R.nicole = !!u && u.email === NICOLE_EMAIL;
     if (quitarCitas) { quitarCitas(); quitarCitas = null; citas = []; }
+    if (quitarSugs) { quitarSugs(); quitarSugs = null; sugs = []; }
+    if (R.nicole) quitarSugs = F.onSnapshot(F.collection(db, "sugerencias"), snap => {
+      sugs = snap.docs.map(d => { const v = d.data(); return { id:d.id, ...v, fecha: v.fecha?.toMillis ? v.fecha.toMillis() : Date.now() }; }).sort((a, b) => b.fecha - a.fecha);
+      if (pila.includes("p-nicole")) pintarNicole();
+    }, e => console.warn("sugerencias", e));
     if (R.nicole) quitarCitas = F.onSnapshot(F.query(F.collection(db, "citas"), F.where("fecha", ">=", iso(crAhora()))), snap => {
       const antes = citas.length; citas = snap.docs.map(d => ({ id:d.id, ...d.data() }));
       if (pila.includes("p-nicole")) pintarNicole();
@@ -688,7 +719,8 @@ async function crearReservasFirebase(){
   return R;
 }
 // Mientras Firebase carga, el calendario muestra todo libre pero no deja confirmar.
-const ReservasCargando = { prueba:false, nicole:false, ocupados:() => new Set(), todas:() => [],
+const ReservasCargando = { prueba:false, nicole:false, ocupados:() => new Set(), todas:() => [], sugerencias:() => [],
+  async enviarSug(){ throw new Error("cargando"); }, async borrarSug(){},
   async reservar(){ throw new Error("cargando"); }, async cancelar(){}, async entrar(){ throw new Error("cargando"); }, salir(){} };
 let Reservas = FIREBASE ? ReservasCargando : ReservasPrueba;
 
@@ -934,7 +966,6 @@ function pintarListo(box, c){
     <div class="resumen" style="text-align:left"><small>Tu cita</small><b>${esc(c.servicio)}${L ? " · " + L.nombre : ""}<br>${fechaLarga(c.fecha)}<br>${h12m(c.ini)} a ${h12m(c.ini + c.dur)} · ${durTxt(c.dur)}</b></div>
     <div class="bloque">
       <a class="btn btn-oro" href="${waLink(msg)}" target="_blank" rel="noopener"><svg><use href="#wa"/></svg>Avisarle a Nicole por WhatsApp</a>
-      <a class="btn btn-linea" style="color:var(--tinta);border-color:var(--oro)" href="${gcal(c)}" target="_blank" rel="noopener">${CAL}Agregar a mi calendario</a>
       ${L ? `<div class="seg2"><a class="btn btn-linea" style="color:var(--tinta);border-color:var(--oro);padding:13px 8px" href="${waze(L)}" target="_blank" rel="noopener">Waze</a><a class="btn btn-linea" style="color:var(--tinta);border-color:var(--oro);padding:13px 8px" href="${L.maps}" target="_blank" rel="noopener">Google Maps</a></div><p style="font-size:13.5px;color:#7a7065;margin-top:-2px">📍 ${esc(L.dir)}</p>` : ""}
       <button class="btn btn-osc" id="a-otra">Hacer otra reserva</button>
     </div>
@@ -942,6 +973,7 @@ function pintarListo(box, c){
 }
 
 // ================== ACCESO DE NICOLE ==================
+let nVista = "citas";
 function pintarNicole(){
   const box = $("#nicole");
   if (!Reservas.nicole) {
@@ -955,9 +987,16 @@ function pintarNicole(){
       </div>`;
     return;
   }
+  const sugs = Reservas.sugerencias();
+  const pest = `<div class="seg2" style="margin-bottom:16px"><button class="chip${nVista === "citas" ? " si" : ""}" data-nv="citas">Citas</button><button class="chip${nVista === "sug" ? " si" : ""}" data-nv="sug">Sugerencias${sugs.length ? ` (${sugs.length})` : ""}</button></div>`;
+  if (nVista === "sug") {
+    box.innerHTML = pest + `<div style="display:flex;justify-content:flex-end;margin-bottom:6px"><button class="chip" id="n-salir">Salir</button></div>` + (sugs.length ? sugs.map(x => `<div class="cita-a"><div class="h"><b style="font-size:17px">${esc(x.nombre || "Anónimo")}</b><span>${new Date(x.fecha).toLocaleDateString("es-CR", { day:"numeric", month:"short" })}</span></div>
+      <p style="white-space:pre-wrap">${esc(x.texto)}</p><div class="acc"><button class="rojo" data-borrar-sug="${x.id}">Borrar</button></div></div>`).join("") : `<div class="vacio">Todavía no hay sugerencias.</div>`);
+    return;
+  }
   const hoy = iso(crAhora());
   const citas = Reservas.todas().filter(c => c.fecha >= hoy).sort((a, b) => (a.fecha + hhmm(a.ini)).localeCompare(b.fecha + hhmm(b.ini)));
-  let html = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><p style="color:#7a7065">${citas.length} cita${citas.length === 1 ? "" : "s"} próxima${citas.length === 1 ? "" : "s"}.</p><button class="chip" id="n-salir">Salir</button></div>
+  let html = pest + `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><p style="color:#7a7065">${citas.length} cita${citas.length === 1 ? "" : "s"} próxima${citas.length === 1 ? "" : "s"}.</p><button class="chip" id="n-salir">Salir</button></div>
     ${citas.length ? (() => { const nuevas = citas.filter(c => !enCalendario(c)).length; return `<div class="bloque" style="margin:14px 0 6px">
       ${nuevas ? `<button class="btn btn-oro" id="n-ics-nuevas">${CAL}Pasar ${nuevas} cita${nuevas === 1 ? "" : "s"} nueva${nuevas === 1 ? "" : "s"} a mi calendario</button>`
                : `<div class="vacio" style="padding:12px">✓ Todas tus citas ya están en tu calendario</div>`}
@@ -991,10 +1030,31 @@ $("#nicole").addEventListener("click", async e => {
     const reg = calLeer(); const r = reg[c.id]; reg[c.id] = { f: firmaCita(c), s: r ? r.s + 1 : 0 }; calGuardar(reg);
     open(gcal(c, true), "_blank", "noopener"); setTimeout(pintarNicole, 400); return;
   }
+  if (b.dataset.nv) { nVista = b.dataset.nv; pintarNicole(); return; }
+  if (b.dataset.borrarSug) { if (!confirm("¿Borrar esta sugerencia?")) return; try { await Reservas.borrarSug(b.dataset.borrarSug); pintarNicole(); } catch { toast("No se pudo borrar. Revisa tu conexión."); } return; }
   if (b.id === "n-salir") { Reservas.salir(); pintarNicole(); }
   if (b.dataset.cancel) { if (!confirm("¿Cancelar esta cita? El espacio queda libre otra vez.")) return; try { const estaba = enCalendario(Reservas.todas().find(x => x.id === b.dataset.cancel) || {}); await Reservas.cancelar(b.dataset.cancel); pintarNicole(); toast(estaba ? "Cita cancelada. Bórrala también de tu calendario." : "Cita cancelada"); } catch { toast("No se pudo cancelar. Revisa tu conexión."); } }
 });
 $("#nicole").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "n-clave") $("#n-ok").click(); });
+
+// ================== SUGERENCIAS ==================
+let ultimaSug = 0;
+$("#sug-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const texto = $("#sug-texto").value.trim(), nombre = $("#sug-nombre").value.trim().slice(0, 40);
+  const err = t => $("#sug-err").textContent = t;
+  if (texto.length < 3) return err("Escribe tu sugerencia.");
+  if (Date.now() - ultimaSug < 30000) return err("Espera unos segundos antes de enviar otra.");
+  const b = $("#sug-enviar"); b.disabled = true; b.textContent = "Enviando…"; err("");
+  try {
+    await Reservas.enviarSug({ texto: texto.slice(0, 600), nombre });
+    ultimaSug = Date.now();
+    if (NTFY_TEMA) try { fetch("https://ntfy.sh/", { method:"POST", body: JSON.stringify({ topic: NTFY_TEMA, title: "Nueva sugerencia" + (nombre ? " de " + nombre : ""), message: texto.slice(0, 600), tags:["bulb"] }) }).catch(() => {}); } catch {}
+    $("#sug-form").hidden = true; $("#sug-ok").hidden = false;
+  } catch (ex) { err(ex.message === "cargando" ? "Conectando… intenta de nuevo en unos segundos." : "No se pudo enviar. Revisa tu conexión."); }
+  b.disabled = false; b.textContent = "Enviar sugerencia";
+});
+$("#sug-otra").addEventListener("click", () => { $("#sug-texto").value = ""; $("#sug-form").hidden = false; $("#sug-ok").hidden = true; });
 
 // ================== GALERÍA ==================
 $("#gal").innerHTML = FOTOS.map((f, i) => `<button data-i="${i}" class="${i === 0 ? "ancha" : ""}" aria-label="Ver foto ${i + 1}"><img src="${f}" alt="" loading="lazy"></button>`).join("");

@@ -32,6 +32,16 @@ service cloud.firestore {
       allow delete: if esNicole();
     }
 
+    // Sugerencias: cualquiera envía (con o sin nombre); solo Nicole las lee y las borra.
+    match /sugerencias/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['texto','nombre','fecha'])
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() >= 3 && request.resource.data.texto.size() <= 600
+        && request.resource.data.nombre is string && request.resource.data.nombre.size() <= 40
+        && request.resource.data.fecha == request.time;
+      allow read, delete: if esNicole();
+    }
+
     match /{path=**} { allow read, write: if false; }
   }
 }
