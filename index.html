@@ -892,23 +892,39 @@ function gcal(c, paraNicole){
   return "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent(paraNicole ? `${c.nombre} · ${c.servicio} · ${LUGARES[c.lugar]?.corto || ""}` : `Cita en Enzō ${LUGARES[c.lugar]?.nombre || "Spa"} · ${c.servicio}`) + (paraNicole ? "&details=" + encodeURIComponent(`Cel: ${c.tel}${c.nota ? "\nNota: " + c.nota : ""}`) : "") + "&dates=" + t(c.ini) + "/" + t(c.ini + c.dur) + "&location=" + encodeURIComponent(LUGARES[c.lugar] ? `${LUGARES[c.lugar].lat},${LUGARES[c.lugar].lng}` : "");
 }
 // Archivo de calendario (.ics) con varias citas: el celular las agrega todas de una vez
+const CAL_KEY = "enzo_calendario_v1";
+const firmaCita = c => [c.fecha, c.ini, c.dur, c.lugar, c.servicio].join("|");
+function calLeer(){ try { return JSON.parse(localStorage.getItem(CAL_KEY) || "{}"); } catch { return calMem; } }
+let calMem = {};
+function calGuardar(m){ calMem = m; try { localStorage.setItem(CAL_KEY, JSON.stringify(m)); } catch {} }
+const enCalendario = c => calLeer()[c.id]?.f === firmaCita(c);
+const esIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
 function descargarIcs(lista, nombre){
+  const reg = calLeer();
   const f = (fecha, min) => { const u = min + 360; const d = u >= 1440 ? iso(masDias(deIso(fecha), 1)) : fecha; return d.replace(/-/g, "") + "T" + hhmm(u % 1440) + "00Z"; };
   const tx = t => String(t).replace(/\\/g, "\\\\").replace(/([,;])/g, "\\$1").replace(/\n/g, "\\n");
   const ahora = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
-  const ev = lista.map(c => ["BEGIN:VEVENT", `UID:${c.id}@enzospa`, `DTSTAMP:${ahora}`, `DTSTART:${f(c.fecha, c.ini)}`, `DTEND:${f(c.fecha, c.ini + c.dur)}`,
+  const ev = lista.map(c => ["BEGIN:VEVENT", `UID:${c.id}@enzospa`, `DTSTAMP:${ahora}`, `SEQUENCE:${reg[c.id] ? (reg[c.id].f === firmaCita(c) ? reg[c.id].s : reg[c.id].s + 1) : 0}`, `DTSTART:${f(c.fecha, c.ini)}`, `DTEND:${f(c.fecha, c.ini + c.dur)}`,
     `SUMMARY:${tx(c.nombre + " · " + c.servicio + (LUGARES[c.lugar] ? " · " + LUGARES[c.lugar].corto : ""))}`, ...(LUGARES[c.lugar] ? [`LOCATION:${tx("Enzō " + LUGARES[c.lugar].nombre + " - " + LUGARES[c.lugar].dir)}`, `GEO:${LUGARES[c.lugar].lat};${LUGARES[c.lugar].lng}`] : []), `DESCRIPTION:${tx("Cel: " + c.tel + (c.nota ? "\nNota: " + c.nota : ""))}`,
     "BEGIN:VALARM", "TRIGGER:-PT30M", "ACTION:DISPLAY", "DESCRIPTION:Cita en 30 minutos", "END:VALARM", "END:VEVENT"].join("\r\n"));
   const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Enzo Spa//Citas//ES", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", ...ev, "END:VCALENDAR"].join("\r\n");
   const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
   const archivo = new File([blob], nombre + ".ics", { type: "text/calendar" });
-  if (navigator.canShare && navigator.canShare({ files: [archivo] }) && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+  // anotar como pasadas (mismo identificador = la cita se actualiza en vez de duplicarse)
+  for (const c of lista) { const r = reg[c.id]; reg[c.id] = { f: firmaCita(c), s: r ? (r.f === firmaCita(c) ? r.s : r.s + 1) : 0 }; }
+  calGuardar(reg);
+  if (esIOS) {
+    // iPhone: abre directo la app Calendario con "Agregar todo"
+    const url = URL.createObjectURL(blob); location.href = url; setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } else if (navigator.canShare && navigator.canShare({ files: [archivo] }) && /Android/i.test(navigator.userAgent)) {
     navigator.share({ files: [archivo], title: "Citas Enzō Spa" }).catch(() => {});
   } else {
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nombre + ".ics"; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   }
   toast(`${lista.length} cita${lista.length === 1 ? "" : "s"} lista${lista.length === 1 ? "" : "s"} para tu calendario`);
+  setTimeout(() => { if (pila.includes("p-nicole")) pintarNicole(); }, 400);
 }
 
 function pintarListo(box, c){
@@ -943,16 +959,17 @@ function pintarNicole(){
   const hoy = iso(crAhora());
   const citas = Reservas.todas().filter(c => c.fecha >= hoy).sort((a, b) => (a.fecha + hhmm(a.ini)).localeCompare(b.fecha + hhmm(b.ini)));
   let html = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><p style="color:#7a7065">${citas.length} cita${citas.length === 1 ? "" : "s"} próxima${citas.length === 1 ? "" : "s"}.</p><button class="chip" id="n-salir">Salir</button></div>
-    ${citas.length ? `<div class="bloque" style="margin:14px 0 6px">
-      <button class="btn btn-oro" id="n-ics-sem">${CAL}Pasar las citas de esta semana a mi calendario</button>
-      <button class="btn btn-linea" style="color:var(--tinta);border-color:var(--oro)" id="n-ics-todas">Pasar todas las próximas (${citas.length})</button>
-    </div>` : ""}`; let dia = "";
+    ${citas.length ? (() => { const nuevas = citas.filter(c => !enCalendario(c)).length; return `<div class="bloque" style="margin:14px 0 6px">
+      ${nuevas ? `<button class="btn btn-oro" id="n-ics-nuevas">${CAL}Pasar ${nuevas} cita${nuevas === 1 ? "" : "s"} nueva${nuevas === 1 ? "" : "s"} a mi calendario</button>`
+               : `<div class="vacio" style="padding:12px">✓ Todas tus citas ya están en tu calendario</div>`}
+      <button class="chip" style="justify-self:center" id="n-ics-todas">Volver a pasar todas (${citas.length})</button>
+    </div>`; })() : ""}`; let dia = "";
   for (const c of citas) {
     if (c.fecha !== dia) { dia = c.fecha; html += `<div class="dia-t">${c.fecha === hoy ? "Hoy · " : ""}${fechaLarga(c.fecha)}</div>`; }
     const tel = String(c.tel).replace(/\D/g, ""); const t506 = tel.length === 8 ? "506" + tel : tel;
     html += `<div class="cita-a"><div class="h"><b>${esc(c.nombre)}</b><span>${h12m(c.ini)} – ${h12m(c.ini + c.dur)}</span></div>
       <p><b style="color:var(--oro3);font-weight:500">📍 ${LUGARES[c.lugar]?.nombre || "Lugar sin definir"}</b><br>${esc(c.servicio)} · ${durTxt(c.dur)}${c.nota ? `<br><i>“${esc(c.nota)}”</i>` : ""}</p>
-      <div class="acc"><a href="https://wa.me/${t506}" target="_blank" rel="noopener">WhatsApp</a><a href="tel:${tel}">Llamar</a><a href="${gcal(c, true)}" target="_blank" rel="noopener">📅 A mi calendario</a><button class="rojo" data-cancel="${c.id}">Cancelar cita</button></div></div>`;
+      <div class="acc"><a href="https://wa.me/${t506}" target="_blank" rel="noopener">WhatsApp</a><a href="tel:${tel}">Llamar</a>${enCalendario(c) ? `<button data-cal="${c.id}" style="color:#4f8a5f;border-color:#bfd9c6">✓ En mi calendario</button>` : `<button data-cal="${c.id}">📅 A mi calendario</button>`}<button class="rojo" data-cancel="${c.id}">Cancelar cita</button></div></div>`;
   }
   box.innerHTML = html;
 }
@@ -963,14 +980,20 @@ $("#nicole").addEventListener("click", async e => {
     try { await Reservas.entrar($("#n-clave").value); pintarNicole(); }
     catch { $("#n-err").textContent = "Contraseña incorrecta."; b.disabled = false; }
   }
-  if (b.id === "n-ics-sem" || b.id === "n-ics-todas") {
-    const hoy = iso(crAhora()), fin = iso(masDias(deIso(hoy), 6));
-    const lista = Reservas.todas().filter(c => c.fecha >= hoy && (b.id === "n-ics-todas" || c.fecha <= fin));
-    if (!lista.length) return toast("No hay citas en esta semana.");
-    return descargarIcs(lista, b.id === "n-ics-sem" ? "citas-semana" : "citas-enzo");
+  if (b.id === "n-ics-nuevas" || b.id === "n-ics-todas") {
+    const hoy = iso(crAhora());
+    const lista = Reservas.todas().filter(c => c.fecha >= hoy && (b.id === "n-ics-todas" || !enCalendario(c)));
+    if (!lista.length) return toast("No hay citas nuevas.");
+    return descargarIcs(lista, "citas-enzo");
+  }
+  if (b.dataset.cal) {
+    const c = Reservas.todas().find(x => x.id === b.dataset.cal); if (!c) return;
+    if (esIOS) return descargarIcs([c], "cita-" + c.fecha);
+    const reg = calLeer(); const r = reg[c.id]; reg[c.id] = { f: firmaCita(c), s: r ? r.s + 1 : 0 }; calGuardar(reg);
+    open(gcal(c, true), "_blank", "noopener"); setTimeout(pintarNicole, 400); return;
   }
   if (b.id === "n-salir") { Reservas.salir(); pintarNicole(); }
-  if (b.dataset.cancel) { if (!confirm("¿Cancelar esta cita? El espacio queda libre otra vez.")) return; try { await Reservas.cancelar(b.dataset.cancel); pintarNicole(); toast("Cita cancelada"); } catch { toast("No se pudo cancelar. Revisa tu conexión."); } }
+  if (b.dataset.cancel) { if (!confirm("¿Cancelar esta cita? El espacio queda libre otra vez.")) return; try { const estaba = enCalendario(Reservas.todas().find(x => x.id === b.dataset.cancel) || {}); await Reservas.cancelar(b.dataset.cancel); pintarNicole(); toast(estaba ? "Cita cancelada. Bórrala también de tu calendario." : "Cita cancelada"); } catch { toast("No se pudo cancelar. Revisa tu conexión."); } }
 });
 $("#nicole").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "n-clave") $("#n-ok").click(); });
 
