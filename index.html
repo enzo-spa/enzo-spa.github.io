@@ -559,7 +559,7 @@ const HORARIO = [
 ];
 const SEMANAS_ADELANTE = 4;   // cuántas semanas se pueden reservar
 const ANTICIPACION_MIN = 60;  // minutos mínimos de anticipación
-const CLAVE_NICOLE = "1234";  // clave solo para la versión de prueba (sin Firebase)
+const CLAVE_NICOLE = "Am123456***";  // clave solo para la versión de prueba (sin Firebase)
 
 // ===== CONEXIÓN =====
 // Pegue aquí la configuración de Firebase (entre las llaves). Si queda en null, la página funciona en modo de prueba.
@@ -925,10 +925,10 @@ function pintarNicole(){
       <img src="${document.querySelector('.cajon .cab img').src}" style="width:84px;margin:0 auto 14px;border-radius:50%;box-shadow:0 0 0 1px var(--oro)" alt="">
       <h2 style="font-family:var(--serif);font-size:28px;font-weight:600">Acceso de Nicole</h2>
       <p style="color:#7a7065;margin:4px 0 18px">Aquí ves todas tus citas reservadas.</p>
-      <div class="campo"><input id="n-clave" type="password" ${Reservas.prueba ? 'inputmode="numeric"' : ""} placeholder="Contraseña" style="text-align:center"></div>
+      <div class="campo"><input id="n-clave" type="password" autocomplete="current-password" placeholder="Contraseña" style="text-align:center"></div>
       <p class="error" id="n-err"></p>
       <button class="btn btn-oro" style="width:100%" id="n-ok">Entrar</button>
-      ${Reservas.prueba ? `<p class="prueba">Clave de prueba: ${CLAVE_NICOLE}</p>` : ""}</div>`;
+      </div>`;
     return;
   }
   const hoy = iso(crAhora());
