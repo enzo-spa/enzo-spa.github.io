@@ -593,14 +593,10 @@ section.panel{padding:0}
 .red-b.ig i{background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fd5949 45%,#d6249f 60%,#285aeb 90%)}
 .red-b.wa2 i{background:#25d366}
 .redes-lista[hidden]{display:none}
-.hero{min-height:0;padding:44px 20px 34px}
-.hero .bajar{display:none}
 .nav{top:0;top:env(safe-area-inset-top,0px)}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--negro);z-index:31}
 /* barra del menú: una sola fila como antes; en iPhone siempre empieza desde "Menú" */
 .nav .fila{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
-/* iPhone: que el logo no quede pegado a la barra de la hora */
-.hero{padding-top:calc(44px + env(safe-area-inset-top,0px))}
 </style>
 </head>
 <body>
@@ -620,6 +616,16 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 
 
 <main>
+<nav class="nav" aria-label="Principal">
+  <div class="fila">
+    <button class="menu" data-abrir="cajon" aria-label="Abrir menú"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menú</button>
+    <button class="ag" data-reservar>Agendar cita</button>
+    <button data-abrir="p-galeria">Galería</button>
+    <a href="#servicios">Servicios</a>
+    <a href="#horario">Horario</a>
+    <a href="#contacto">Ubicación</a>
+  </div>
+</nav>
   <section class="hero" id="inicio">
     <div class="aro"></div><div class="aro b"></div>
     <div>
@@ -635,16 +641,6 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     </div>
     <svg class="bajar" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6 9 6 6 6-6"/></svg>
   </section>
-<nav class="nav" aria-label="Principal">
-  <div class="fila">
-    <button class="menu" data-abrir="cajon" aria-label="Abrir menú"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menú</button>
-    <button class="ag" data-reservar>Agendar cita</button>
-    <button data-abrir="p-galeria">Galería</button>
-    <a href="#servicios">Servicios</a>
-    <a href="#horario">Horario</a>
-    <a href="#contacto">Ubicación</a>
-  </div>
-</nav>
 
   <section class="claro" id="nosotros">
     <div class="wrap bienv">
