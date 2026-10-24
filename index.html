@@ -543,6 +543,16 @@ section.panel{padding:0}
 .conf-l li:last-child{border-bottom:0}
 .conf-l b{font-weight:600;flex:none}
 .conf-l span{text-align:right;color:#5d554c}
+.n-tabs{display:flex!important;overflow-x:auto;scrollbar-width:none;gap:6px!important;margin-left:-18px;margin-right:-18px;padding:0 18px 2px}
+.n-tabs::-webkit-scrollbar{display:none}
+.n-tabs .chip{flex:none;padding:10px 14px;white-space:nowrap}
+.n-tabs [data-nv="env"]{border-color:#25a35a;color:#1d7a43}
+.n-tabs [data-nv="env"].si{background:#1d7a43;border-color:#1d7a43;color:#fff}
+.enc-card .h span{color:#8a8076;font-weight:400}
+.enc-btns{display:flex;gap:8px;align-items:center;margin-top:10px}
+.enc-btns .btn{flex:1;padding:11px 10px;font-size:12px}
+.enc-btns .btn-linea{color:var(--tinta);border-color:#25a35a}
+.enc-env-f{display:block;margin-top:6px;font-size:12.5px;color:#8a8076}
 </style>
 </head>
 <body>
@@ -1008,6 +1018,35 @@ function waEncuesta(c){
   const nombre = String(c.nombre || "").split(" ")[0];
   return `https://wa.me/${t506}?text=${encodeURIComponent(`Hola ${nombre} 🌸 gracias por visitar Enzō Spa. ¿Nos ayudas con una encuesta de 1 minuto sobre tu ${String(c.servicio).toLowerCase()}? Tu opinión es muy importante para mí.\n\n${linkEncuesta(c)}\n\nCon cariño, Nicole`)}`;
 }
+// Registro (en este celular) de encuestas ya enviadas por WhatsApp
+const ENV_KEY = "enzo_encuestas_enviadas";
+let envMem = {};
+function envLeer(){ try { return JSON.parse(localStorage.getItem(ENV_KEY) || "{}"); } catch { return envMem; } }
+function envMarcar(id){ const m = envLeer(); m[id] = Date.now(); envMem = m; try { localStorage.setItem(ENV_KEY, JSON.stringify(m)); } catch {} }
+function citasParaEncuesta(){
+  const hoy = iso(crAhora()), a = crAhora(), min = a.getUTCHours() * 60 + a.getUTCMinutes(), desde = iso(masDias(deIso(hoy), -45));
+  return Reservas.todas().filter(c => c.fecha >= desde && (c.fecha < hoy || (c.fecha === hoy && c.ini + c.dur <= min)))
+    .sort((x, y) => (y.fecha + hhmm(y.ini)).localeCompare(x.fecha + hhmm(x.ini)));
+}
+const pendEnc = () => { const env = envLeer(), resp = new Set(Reservas.encuestas().map(e => e.id)); return citasParaEncuesta().filter(c => !resp.has(c.id) && !env[c.id]).length; };
+function pintarEnvioEncuestas(){
+  const env = envLeer(), resp = new Map(Reservas.encuestas().map(e => [e.id, e]));
+  const l = citasParaEncuesta();
+  const pend = l.filter(c => !resp.has(c.id) && !env[c.id]), espera = l.filter(c => !resp.has(c.id) && env[c.id]), listas = l.filter(c => resp.has(c.id));
+  const tarjeta = (c, tipo) => `<div class="cita-a enc-card">
+      <div class="h"><b>${esc(c.nombre)}</b><span>${fechaLarga(c.fecha).replace(/^./, x => x.toUpperCase())}</span></div>
+      <p>${esc(c.servicio)} · ${h12m(c.ini)} · 📍 ${LUGARES[c.lugar]?.corto || ""}</p>
+      ${tipo === "resp" ? `<div class="enc-res" style="margin:8px 0 0"><b>${estrellasTxt(resp.get(c.id).estrellas)}</b>${resp.get(c.id).comentario ? `<span>“${esc(resp.get(c.id).comentario)}”</span>` : ""}</div>`
+        : `<div class="enc-btns"><a class="btn ${tipo === "pend" ? "btn-oro" : "btn-linea"}" data-enviar-enc="${c.id}" href="${waEncuesta(c)}" target="_blank" rel="noopener"><svg><use href="#wa"/></svg>${tipo === "pend" ? "Enviar por WhatsApp" : "Reenviar"}</a>
+           <button class="chip" data-copiar-enc2="${c.id}">Copiar link</button></div>
+           ${tipo === "esp" ? `<small class="enc-env-f">Enviada el ${new Date(env[c.id]).toLocaleDateString("es-CR", { day:"numeric", month:"short" })} · esperando respuesta</small>` : ""}`}
+    </div>`;
+  const seccion = (t, arr, tipo, vacio) => `<h4 class="op-t">${t} (${arr.length})</h4>` + (arr.length ? arr.map(c => tarjeta(c, tipo)).join("") : `<div class="vacio" style="margin-bottom:6px">${vacio}</div>`);
+  return `<p class="conf-p" style="margin-bottom:6px">Aquí aparecen las citas ya atendidas de los últimos 45 días. Envíales la encuesta por WhatsApp con un toque.</p>`
+    + seccion("Por enviar", pend, "pend", "No hay citas pendientes de encuesta. 🎉")
+    + seccion("Enviadas, esperando respuesta", espera, "esp", "Ninguna por ahora.")
+    + seccion("Respondidas", listas, "resp", "Todavía no hay respuestas.");
+}
 const estrellasTxt = n => "★".repeat(n) + "☆".repeat(5 - n);
 
 // ===== Notificaciones del celular (solo para Nicole, con la app abierta o en segundo plano) =====
@@ -1415,9 +1454,7 @@ function verCita(id){
       <div class="ap-pie"><span id="ev-ap-est"></span><button class="btn btn-osc" id="ev-ap-ok">Guardar anotación</button></div></div>
     <div class="ev-acc"><a class="btn btn-oro" href="https://wa.me/${t506}" target="_blank" rel="noopener"><svg><use href="#wa"/></svg>WhatsApp</a><a class="btn btn-osc" href="tel:${tel}">Llamar</a></div>
     ${(() => { const e = Reservas.encuestas().find(x => x.id === c.id);
-      return e ? `<div class="enc-res"><b>${estrellasTxt(e.estrellas)}</b><span>Encuesta respondida${e.comentario ? `: “${esc(e.comentario)}”` : ""}</span></div>`
-               : `<div class="enc-env"><a class="btn btn-linea" style="color:var(--tinta);border-color:#25a35a;width:100%" href="${waEncuesta(c)}" target="_blank" rel="noopener"><svg><use href="#wa"/></svg>Enviar encuesta por WhatsApp</a>
-                  <button class="enc-copiar" data-copiar-enc="${c.id}">Copiar link de la encuesta</button></div>`; })()}
+      return e ? `<div class="enc-res"><b>${estrellasTxt(e.estrellas)}</b><span>Encuesta respondida${e.comentario ? `: “${esc(e.comentario)}”` : ""}</span></div>` : ""; })()}
     <div class="ev-acc"><button class="btn btn-linea" style="color:var(--tinta);border-color:var(--oro)" data-cal="${c.id}">${enCalendario(c) ? "✓ En mi calendario" : "📅 A mi calendario"}</button><button class="btn btn-linea" style="color:#a3443a;border-color:#e3c3bd" data-cancel="${c.id}">Cancelar cita</button></div>
     </div>`;
   const velo = $("#velo"); velo.classList.add("on"); velo.style.zIndex = 60;
@@ -1543,8 +1580,9 @@ function pintarNicole(){
   const sinAvisos = soportaAvisos && Notification.permission === "default" || (esIOS && !soportaAvisos);
   const pest = `<div class="n-fila"><span>Hola, Nicole 🌸</span><button class="chip${nVista === "conf" ? " si" : ""}" data-nv="conf">⚙️ Configuración</button><button class="chip" id="n-salir">Salir</button></div>`
     + (sinAvisos && nVista !== "conf" ? `<button class="aviso-mini" data-nv="conf">🔔 Activa las notificaciones de citas nuevas ›</button>` : "")
-    + `<div class="seg2 n-tabs"><button class="chip${nVista === "citas" ? " si" : ""}" data-nv="citas">Citas</button><button class="chip${nVista === "ing" ? " si" : ""}" data-nv="ing">Ingresos</button><button class="chip${nVista === "sug" ? " si" : ""}" data-nv="sug">Opiniones${sugs.length + Reservas.encuestas().length ? ` (${sugs.length + Reservas.encuestas().length})` : ""}</button><button class="chip${nVista === "gal" ? " si" : ""}" data-nv="gal">Galería</button></div>`;
+    + `<div class="seg2 n-tabs"><button class="chip${nVista === "citas" ? " si" : ""}" data-nv="citas">Citas</button><button class="chip${nVista === "ing" ? " si" : ""}" data-nv="ing">Ingresos</button><button class="chip${nVista === "sug" ? " si" : ""}" data-nv="sug">Opiniones${sugs.length + Reservas.encuestas().length ? ` (${sugs.length + Reservas.encuestas().length})` : ""}</button><button class="chip${nVista === "gal" ? " si" : ""}" data-nv="gal">Galería</button><button class="chip${nVista === "env" ? " si" : ""}" data-nv="env">Enviar encuesta${pendEnc() ? ` (${pendEnc()})` : ""}</button></div>`;
   if (nVista === "conf") { box.innerHTML = pest + pintarConfig(); return; }
+  if (nVista === "env") { box.innerHTML = pest + pintarEnvioEncuestas(); return; }
   if (nVista === "ing") { box.innerHTML = pest + `` + pintarIngresos(); return; }
   if (nVista === "gal") {
     const l = Reservas.galeria() || [];
@@ -1623,7 +1661,10 @@ $("#nicole").addEventListener("click", async e => {
     const reg = calLeer(); const r = reg[c.id]; reg[c.id] = { f: firmaCita(c), s: r ? r.s + 1 : 0 }; calGuardar(reg);
     open(gcal(c, true), "_blank", "noopener"); setTimeout(pintarNicole, 400); return;
   }
-  if (b.dataset.nv) { nVista = b.dataset.nv; pintarNicole(); return; }
+  if (b.dataset.nv) { nVista = b.dataset.nv; pintarNicole(); const t = $("#nicole .n-tabs .si"); if (t) t.parentElement.scrollLeft = t.offsetLeft - 18; return; }
+  if (b.dataset.copiarEnc2) { const c = Reservas.todas().find(x => x.id === b.dataset.copiarEnc2); if (!c) return; const url = linkEncuesta(c);
+    try { await navigator.clipboard.writeText(url); toast("Link copiado. Pégalo en WhatsApp."); } catch { prompt("Copia este link:", url); }
+    envMarcar(c.id); setTimeout(pintarNicole, 300); return; }
   if (b.dataset.cv) { nCal.vista = b.dataset.cv; pintarNicole(); return; }
   if (b.dataset.iv) { nIng.vista = b.dataset.iv; pintarNicole(); return; }
   if (b.dataset.inav !== undefined) { const n = +b.dataset.inav, r = deIso(nIng.ref);
@@ -1662,6 +1703,7 @@ $("#nicole").addEventListener("click", async e => {
   if (b.id === "n-salir") { Reservas.salir(); pintarNicole(); }
   if (b.dataset.cancel) { if (!confirm("¿Cancelar esta cita? El espacio queda libre otra vez.")) return; try { const estaba = enCalendario(Reservas.todas().find(x => x.id === b.dataset.cancel) || {}); await Reservas.cancelar(b.dataset.cancel); pintarNicole(); toast(estaba ? "Cita cancelada. Bórrala también de tu calendario." : "Cita cancelada"); } catch { toast("No se pudo cancelar. Revisa tu conexión."); } }
 });
+$("#nicole").addEventListener("click", e => { const a = e.target.closest("a[data-enviar-enc]"); if (a) { envMarcar(a.dataset.enviarEnc); setTimeout(pintarNicole, 600); } });
 $("#nicole").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "n-clave") $("#n-ok").click(); });
 
 // ================== SUGERENCIAS ==================
