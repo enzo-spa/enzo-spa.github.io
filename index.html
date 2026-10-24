@@ -391,6 +391,74 @@ section.panel{padding:0}
 .rs-fila b{font-weight:500;font-size:16px;line-height:1.4}
 .rs-p{color:var(--oro3);font-family:var(--serif);font-weight:600;margin-left:6px;white-space:nowrap}
 .rs-ed{flex:none;border:1px solid #d6cdbf;background:none;border-radius:999px;padding:6px 12px;font:500 13px var(--sans);color:var(--oro3);cursor:pointer}
+/* calendario de Nicole */
+.cal-bar{display:grid;gap:10px;margin-bottom:12px}
+.cal-vistas{display:grid;grid-template-columns:repeat(4,1fr);background:#ebe3d5;border-radius:12px;padding:4px;gap:4px}
+.cal-vistas button{border:0;background:none;border-radius:9px;padding:9px 4px;font:500 14px var(--sans);color:#5d554c;cursor:pointer}
+.cal-vistas button.si{background:#fff;color:var(--tinta);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.cal-nav{display:flex;align-items:center;gap:6px}
+.cal-nav button{border:1px solid #d6cdbf;background:#fff;border-radius:999px;min-width:36px;height:36px;font-size:18px;color:var(--tinta);cursor:pointer}
+.cal-nav .hoy{font:500 13px var(--sans);padding:0 14px}
+.cal-nav b{margin-left:6px;font-family:var(--serif);font-size:20px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-ley{display:flex;gap:14px;font-size:12.5px;color:#7a7065}
+.cal-ley span{display:inline-flex;align-items:center;gap:6px}
+.cal-ley i{width:12px;height:12px;border-radius:4px}
+.ev-spa{background:#f3e6c8;border-left:3px solid var(--oro3)!important;color:#4a3a14}
+.ev-est{background:#dfe9e3;border-left:3px solid #3f7a5f!important;color:#1f3d2f}
+.cal-ley i.ev-spa,.cal-ley i.ev-est,.ev-punto{border-left:0!important}
+.cal-ley i.ev-spa,.ev-punto.ev-spa{background:var(--oro)}
+.cal-ley i.ev-est,.ev-punto.ev-est{background:#3f7a5f}
+/* mes */
+.mes{background:#fff;border:1px solid var(--marfil2);border-radius:14px;overflow:hidden}
+.mes-cab{display:grid;grid-template-columns:repeat(7,1fr);font:500 11px var(--sans);color:#8a8076;text-align:center;padding:8px 0;border-bottom:1px solid #f1ebe1}
+.mes-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.mes-d{min-height:78px;border:0;border-right:1px solid #f4efe6;border-bottom:1px solid #f4efe6;background:#fff;padding:4px 2px;display:flex;flex-direction:column;align-items:stretch;gap:2px;cursor:pointer;font:inherit;text-align:left;min-width:0}
+.mes-d:nth-child(7n){border-right:0}
+.mes-d.fuera{background:#faf7f1}.mes-d.fuera .n{color:#c2b8aa}
+.mes-d.cerr{background:repeating-linear-gradient(135deg,#fff 0 6px,#faf6ef 6px 12px)}
+.mes-d .n{align-self:center;font-size:12.5px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:var(--tinta)}
+.mes-d .n.hoy{background:var(--tinta);color:var(--oro2);font-weight:600}
+.mes-ev{display:block;font-size:10px;line-height:1.3;padding:1px 3px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mes-d .mas{font-size:10px;color:#7a7065;padding-left:3px}
+/* semana y día */
+.tg{background:#fff;border:1px solid var(--marfil2);border-radius:14px;overflow:hidden}
+.tg-cab{display:grid;grid-template-columns:38px repeat(var(--n,7),minmax(0,1fr));border-bottom:1px solid #eee5d6;position:sticky;top:0;background:#fff;z-index:2}
+.tg-dia .tg-cab{--n:1}.tg-dia .tg-cols{grid-template-columns:1fr}
+.tg-cab button{border:0;background:none;padding:6px 0 7px;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;font:inherit;color:var(--tinta)}
+.tg-cab small{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#8a8076}
+.tg-cab b{font-size:17px;font-weight:600;width:30px;height:30px;border-radius:50%;display:grid;place-items:center}
+.tg-cab .hoy b{background:var(--tinta);color:var(--oro2)}
+.tg-cab .hoy small{color:var(--oro3);font-weight:600}
+.tg-cuerpo{display:grid;grid-template-columns:38px 1fr;position:relative}
+.tg-horas{position:relative;border-right:1px solid #eee5d6}
+.tg-horas span{position:absolute;right:4px;transform:translateY(-6px);font-size:10px;color:#8a8076;white-space:nowrap}
+.tg-horas span:first-child{transform:none}
+.tg-cols{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background-image:linear-gradient(#efe8dc 1px,transparent 1px)}
+.col{position:relative;border-right:1px solid #f4efe6;min-width:0}
+.col:last-child{border-right:0}
+.col.es-hoy{background:rgba(201,164,92,.06)}
+.cerr-b{position:absolute;left:0;right:0;background:repeating-linear-gradient(135deg,rgba(0,0,0,.025) 0 6px,rgba(0,0,0,.05) 6px 12px)}
+.ev{position:absolute;left:2px;right:2px;border:0;border-radius:6px;padding:3px 4px;text-align:left;overflow:hidden;cursor:pointer;font:inherit;display:flex;flex-direction:column;gap:1px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.ev b{font-size:11px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev span{font-size:10px;line-height:1.2;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tg-dia .ev{left:6px;right:6px;padding:6px 8px}.tg-dia .ev b{font-size:14px}.tg-dia .ev span{font-size:12px;white-space:normal}
+.ahora{position:absolute;left:0;right:0;height:2px;background:#d93025;z-index:1}
+.ahora::before{content:"";position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:#d93025}
+.tg-vacio{text-align:center;color:#8a8076;font-size:14px;padding:12px;border-top:1px solid #f1ebe1}
+/* detalle */
+.ev-det{display:flex;gap:12px;align-items:flex-start;margin:4px 0 12px}
+.ev-punto{width:14px;height:14px;border-radius:4px;margin-top:9px;flex:none}
+.ev-det p{color:#5d554c;font-size:14.5px;margin-top:2px}
+.ev-lista{list-style:none;display:grid;gap:8px;margin:0 0 16px;font-size:15px;color:#3c352e}
+.ev-acc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.ev-acc .btn{padding:12px 8px;font-size:12.5px}
+.modal-ev{position:fixed;left:50%;top:50%;z-index:62;width:min(440px,calc(100vw - 28px));max-height:calc(100vh - 40px);overflow:auto;background:var(--marfil);color:var(--tinta);border-radius:22px;box-shadow:0 30px 80px -20px rgba(0,0,0,.7);transform:translate(-50%,-46%) scale(.96);opacity:0;transition:transform .22s ease,opacity .22s ease}
+.modal-ev.on{transform:translate(-50%,-50%);opacity:1}
+.mev-cab{display:flex;justify-content:space-between;align-items:center;padding:12px 14px 12px 18px;border-left:0!important;font:600 12px var(--sans);letter-spacing:.16em;text-transform:uppercase}
+.mev-x{width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.7);font-size:20px;line-height:1;color:var(--tinta);cursor:pointer}
+.mev-in{padding:16px 18px 18px}
+.mev-in h3{font-family:var(--serif);font-size:28px;font-weight:600;line-height:1.1}
+.modal-ev .ev-acc:last-child{margin-bottom:0}
 </style>
 </head>
 <body>
@@ -797,7 +865,7 @@ async function crearReservasFirebase(){
       sugs = snap.docs.map(d => { const v = d.data(); return { id:d.id, ...v, fecha: v.fecha?.toMillis ? v.fecha.toMillis() : Date.now() }; }).sort((a, b) => b.fecha - a.fecha);
       if (pila.includes("p-nicole")) pintarNicole();
     }, e => console.warn("sugerencias", e));
-    if (R.nicole) quitarCitas = F.onSnapshot(F.query(F.collection(db, "citas"), F.where("fecha", ">=", iso(crAhora()))), snap => {
+    if (R.nicole) quitarCitas = F.onSnapshot(F.query(F.collection(db, "citas"), F.where("fecha", ">=", iso(masDias(deIso(iso(crAhora())), -31)))), snap => {
       const nuevas = citas.length || citasCargadas ? snap.docs.filter(d => !citas.some(c => c.id === d.id)).map(d => ({ id:d.id, ...d.data() })) : [];
       citas = snap.docs.map(d => ({ id:d.id, ...d.data() })); citasCargadas = true;
       for (const c of nuevas) avisoLocal(`Nueva cita en ${LUGARES[c.lugar]?.nombre || "Enzō"}: ${c.nombre}`, `${c.servicio} · ${fechaLarga(c.fecha)} · ${h12m(c.ini)}`, "cita-" + c.id);
@@ -1130,6 +1198,97 @@ function pintarListo(box, c){
 }
 
 // ================== ACCESO DE NICOLE ==================
+// ===== Calendario de Nicole (vistas Día, Semana, Mes y Lista, como Google Calendar) =====
+let nCal = { vista: "semana", ref: null };
+const MESES_L = MESES.map(m => m[0].toUpperCase() + m.slice(1));
+const colorLugar = l => l === "estudio" ? "ev-est" : "ev-spa";
+function rangoHoras(lista){
+  let a = 24 * 60, b = 0;
+  for (const h of HORARIO) for (const [x, y] of h.turnos) { a = Math.min(a, aMin(x)); b = Math.max(b, aMin(y)); }
+  for (const c of lista) { a = Math.min(a, c.ini); b = Math.max(b, c.ini + c.dur); }
+  if (a >= b) { a = 9 * 60; b = 19 * 60; }
+  return [Math.floor(a / 60) * 60, Math.ceil(b / 60) * 60];
+}
+function barraCal(){
+  const ref = deIso(nCal.ref);
+  let titulo;
+  if (nCal.vista === "mes" || nCal.vista === "lista") titulo = nCal.vista === "lista" ? "Próximas citas" : `${MESES_L[ref.getUTCMonth()]} ${ref.getUTCFullYear()}`;
+  else if (nCal.vista === "semana") { const l = masDias(ref, -((ref.getUTCDay() + 6) % 7)), d = masDias(l, 6);
+    titulo = l.getUTCMonth() === d.getUTCMonth() ? `${l.getUTCDate()} – ${d.getUTCDate()} ${MES_C[d.getUTCMonth()]} ${d.getUTCFullYear()}` : `${l.getUTCDate()} ${MES_C[l.getUTCMonth()]} – ${d.getUTCDate()} ${MES_C[d.getUTCMonth()]}`; }
+  else titulo = fechaLarga(nCal.ref).replace(/^./, c => c.toUpperCase());
+  return `<div class="cal-bar">
+    <div class="cal-vistas">${[["dia", "Día"], ["semana", "Semana"], ["mes", "Mes"], ["lista", "Lista"]].map(([k, t]) => `<button class="${nCal.vista === k ? "si" : ""}" data-cv="${k}">${t}</button>`).join("")}</div>
+    ${nCal.vista === "lista" ? "" : `<div class="cal-nav"><button data-cnav="0" class="hoy">Hoy</button><button data-cnav="-1" aria-label="Anterior">‹</button><button data-cnav="1" aria-label="Siguiente">›</button><b>${titulo}</b></div>`}
+    <div class="cal-ley"><span><i class="ev-spa"></i>Spa</span><span><i class="ev-est"></i>Estudio</span></div>
+  </div>`;
+}
+function pintarCal(todas){
+  const hoy = iso(crAhora()), ahora = crAhora(), minAhora = ahora.getUTCHours() * 60 + ahora.getUTCMinutes();
+  const porDia = f => todas.filter(c => c.fecha === f).sort((a, b) => a.ini - b.ini);
+  const ref = deIso(nCal.ref);
+  if (nCal.vista === "mes") {
+    const primero = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), 1));
+    const inicio = masDias(primero, -((primero.getUTCDay() + 6) % 7));
+    let celdas = "";
+    for (let i = 0; i < 42; i++) {
+      const d = masDias(inicio, i), f = iso(d), l = porDia(f), fuera = d.getUTCMonth() !== ref.getUTCMonth();
+      if (i === 35 && fuera) break;
+      const cerrado = !turnosDe(f).length;
+      celdas += `<button class="mes-d${fuera ? " fuera" : ""}${cerrado ? " cerr" : ""}" data-cdia="${f}">
+        <span class="n${f === hoy ? " hoy" : ""}">${d.getUTCDate()}</span>
+        ${l.slice(0, 2).map(c => `<span class="mes-ev ${colorLugar(c.lugar)}">${h12m(c.ini).replace(/:00| /g, "").replace("p.m.", "p").replace("a.m.", "a")} ${esc(c.nombre.split(" ")[0])}</span>`).join("")}
+        ${l.length > 2 ? `<span class="mas">+${l.length - 2} más</span>` : ""}</button>`;
+    }
+    return `<div class="mes"><div class="mes-cab">${["L", "M", "M", "J", "V", "S", "D"].map(x => `<span>${x}</span>`).join("")}</div><div class="mes-grid">${celdas}</div></div>`;
+  }
+  const dias = nCal.vista === "dia" ? [nCal.ref] : [...Array(7)].map((_, i) => iso(masDias(masDias(ref, -((ref.getUTCDay() + 6) % 7)), i)));
+  const visibles = todas.filter(c => dias.includes(c.fecha));
+  const [ha, hb] = rangoHoras(visibles), H = nCal.vista === "dia" ? 64 : 52, alto = (hb - ha) / 60 * H;
+  const horas = []; for (let m = ha; m < hb; m += 60) horas.push(m);
+  const col = f => {
+    const cerr = (() => { const t = turnosDe(f); let out = ""; let pos = ha;
+      for (const [a, b] of t) { if (a > pos) out += `<div class="cerr-b" style="top:${(pos - ha) / 60 * H}px;height:${(a - pos) / 60 * H}px"></div>`; pos = Math.max(pos, b); }
+      if (pos < hb) out += `<div class="cerr-b" style="top:${(pos - ha) / 60 * H}px;height:${(hb - pos) / 60 * H}px"></div>`; return out; })();
+    const evs = porDia(f).map(c => `<button class="ev ${colorLugar(c.lugar)}" data-cev="${c.id}" style="top:${(c.ini - ha) / 60 * H + 1}px;height:${c.dur / 60 * H - 2}px">
+        <b>${esc(nCal.vista === "dia" ? c.nombre : c.nombre.split(" ")[0])}</b>${nCal.vista === "dia" ? `<span>${h12m(c.ini)} – ${h12m(c.ini + c.dur)} · ${esc(c.servicio)} · ${LUGARES[c.lugar]?.corto || ""}</span>` : `<span>${h12m(c.ini).replace(" ", "")}</span>`}</button>`).join("");
+    const linea = f === hoy && minAhora >= ha && minAhora <= hb ? `<div class="ahora" style="top:${(minAhora - ha) / 60 * H}px"></div>` : "";
+    return `<div class="col${f === hoy ? " es-hoy" : ""}" style="height:${alto}px">${cerr}${evs}${linea}</div>`;
+  };
+  return `<div class="tg tg-${nCal.vista}">
+    <div class="tg-cab"><span></span>${dias.map(f => { const d = deIso(f); return `<button class="${f === hoy ? "hoy" : ""}" data-cdia="${f}"><small>${DIAS_C[d.getUTCDay()]}</small><b>${d.getUTCDate()}</b></button>`; }).join("")}</div>
+    <div class="tg-cuerpo"><div class="tg-horas" style="height:${alto}px">${horas.map(m => `<span style="top:${(m - ha) / 60 * H}px">${h12m(m).replace(":00", "").replace(" ", "")}</span>`).join("")}</div>
+      <div class="tg-cols" style="background-size:100% ${H}px">${dias.map(col).join("")}</div></div>
+    ${!visibles.length ? `<p class="tg-vacio">${nCal.vista === "dia" ? "No hay citas este día." : "No hay citas esta semana."}</p>` : ""}
+  </div>`;
+}
+function verCita(id){
+  const c = Reservas.todas().find(x => x.id === id); if (!c) return;
+  const tel = String(c.tel).replace(/\D/g, ""); const t506 = tel.length === 8 ? "506" + tel : tel;
+  document.getElementById("hoja-ev")?.remove();
+  const el = document.createElement("div"); el.className = "modal-ev"; el.id = "hoja-ev"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true");
+  el.innerHTML = `<div class="mev-cab ${colorLugar(c.lugar)}"><span>${LUGARES[c.lugar]?.nombre || "Cita"}</span><button class="mev-x" data-cerrar-ev aria-label="Cerrar">×</button></div>
+    <div class="mev-in">
+    <div class="ev-det"><span class="ev-punto ${colorLugar(c.lugar)}"></span><div><h3>${esc(c.nombre)}</h3>
+      <p>${fechaLarga(c.fecha).replace(/^./, x => x.toUpperCase())} · ${h12m(c.ini)} – ${h12m(c.ini + c.dur)}</p></div></div>
+    <ul class="ev-lista"><li>💆 ${esc(c.servicio)} · ${durTxt(c.dur)}</li><li>📍 ${LUGARES[c.lugar]?.nombre || "Sin lugar"}</li><li>📱 ${esc(c.tel)}</li>${c.nota ? `<li>📝 “${esc(c.nota)}”</li>` : ""}</ul>
+    <div class="ev-acc"><a class="btn btn-oro" href="https://wa.me/${t506}" target="_blank" rel="noopener"><svg><use href="#wa"/></svg>WhatsApp</a><a class="btn btn-osc" href="tel:${tel}">Llamar</a></div>
+    <div class="ev-acc"><button class="btn btn-linea" style="color:var(--tinta);border-color:var(--oro)" data-cal="${c.id}">${enCalendario(c) ? "✓ En mi calendario" : "📅 A mi calendario"}</button><button class="btn btn-linea" style="color:#a3443a;border-color:#e3c3bd" data-cancel="${c.id}">Cancelar cita</button></div>
+    </div>`;
+  const velo = $("#velo"); velo.classList.add("on"); velo.style.zIndex = 60;
+  document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("on"));
+  const cerrar = () => { el.remove(); velo.classList.remove("on"); velo.style.zIndex = 50; document.removeEventListener("keydown", esc_); };
+  const esc_ = e => { if (e.key === "Escape") cerrar(); }; document.addEventListener("keydown", esc_);
+  velo.addEventListener("click", cerrar, { once: true });
+  el.addEventListener("click", async e => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.hasAttribute("data-cerrar-ev")) return cerrar();
+    if (b.dataset.cal || b.dataset.cancel) { cerrar();
+      // reutiliza las mismas acciones del panel
+      const fake = document.createElement("button"); if (b.dataset.cal) fake.dataset.cal = b.dataset.cal; else fake.dataset.cancel = b.dataset.cancel;
+      fake.hidden = true; $("#nicole").appendChild(fake); fake.click(); fake.remove(); }
+  });
+}
+
 let nVista = "citas";
 function pintarNicole(){
   const box = $("#nicole");
@@ -1145,10 +1304,10 @@ function pintarNicole(){
     return;
   }
   const sugs = Reservas.sugerencias();
-  const pest = tarjetaAvisos() + `<div class="seg2" style="margin-bottom:16px"><button class="chip${nVista === "citas" ? " si" : ""}" data-nv="citas">Citas</button><button class="chip${nVista === "sug" ? " si" : ""}" data-nv="sug">Sugerencias${sugs.length ? ` (${sugs.length})` : ""}</button><button class="chip${nVista === "gal" ? " si" : ""}" data-nv="gal">Galería</button></div>`;
+  const pest = tarjetaAvisos() + `<div class="seg2" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px"><button class="chip${nVista === "citas" ? " si" : ""}" data-nv="citas">Citas</button><button class="chip${nVista === "sug" ? " si" : ""}" data-nv="sug">Sugerencias${sugs.length ? ` (${sugs.length})` : ""}</button><button class="chip${nVista === "gal" ? " si" : ""}" data-nv="gal">Galería</button></div>`;
   if (nVista === "gal") {
     const l = Reservas.galeria() || [];
-    box.innerHTML = pest.replace('class="seg2" style="margin-bottom:16px"', 'class="seg2" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px"') + `
+    box.innerHTML = pest + `
       <div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="chip" id="n-salir">Salir</button></div>
       <div class="paso"><span class="lbl">Agregar fotos</span>
         <div><label class="btn btn-oro" style="width:100%;padding:15px;cursor:pointer;margin:0" for="g-fotos">📷 Subir fotos del celular</label></div>
@@ -1173,8 +1332,14 @@ function pintarNicole(){
     return;
   }
   const hoy = iso(crAhora());
+  if (!nCal.ref) nCal.ref = hoy;
+  if (nCal.vista !== "lista") {
+    box.innerHTML = pest + `<div style="display:flex;justify-content:flex-end;margin:-6px 0 10px"><button class="chip" id="n-salir">Salir</button></div>` + barraCal() + pintarCal(Reservas.todas());
+    const ah = box.querySelector(".es-hoy .ahora"); if (ah && nCal.vista !== "mes") setTimeout(() => ah.scrollIntoView({ block:"center" }), 50);
+    return;
+  }
   const citas = Reservas.todas().filter(c => c.fecha >= hoy).sort((a, b) => (a.fecha + hhmm(a.ini)).localeCompare(b.fecha + hhmm(b.ini)));
-  let html = pest + `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><p style="color:#7a7065">${citas.length} cita${citas.length === 1 ? "" : "s"} próxima${citas.length === 1 ? "" : "s"}.</p><button class="chip" id="n-salir">Salir</button></div>
+  let html = pest + barraCal() + `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><p style="color:#7a7065">${citas.length} cita${citas.length === 1 ? "" : "s"} próxima${citas.length === 1 ? "" : "s"}.</p><button class="chip" id="n-salir">Salir</button></div>
     ${citas.length ? (() => { const nuevas = citas.filter(c => !enCalendario(c)).length; return `<div class="bloque" style="margin:14px 0 6px">
       ${nuevas ? `<button class="btn btn-oro" id="n-ics-nuevas">${CAL}Pasar ${nuevas} cita${nuevas === 1 ? "" : "s"} nueva${nuevas === 1 ? "" : "s"} a mi calendario</button>`
                : `<div class="vacio" style="padding:12px">✓ Todas tus citas ya están en tu calendario</div>`}
@@ -1209,6 +1374,14 @@ $("#nicole").addEventListener("click", async e => {
     open(gcal(c, true), "_blank", "noopener"); setTimeout(pintarNicole, 400); return;
   }
   if (b.dataset.nv) { nVista = b.dataset.nv; pintarNicole(); return; }
+  if (b.dataset.cv) { nCal.vista = b.dataset.cv; pintarNicole(); return; }
+  if (b.dataset.cnav !== undefined) { const n = +b.dataset.cnav, r = deIso(nCal.ref);
+    if (n === 0) nCal.ref = iso(crAhora());
+    else if (nCal.vista === "mes") nCal.ref = iso(new Date(Date.UTC(r.getUTCFullYear(), r.getUTCMonth() + n, 1)));
+    else nCal.ref = iso(masDias(r, n * (nCal.vista === "semana" ? 7 : 1)));
+    pintarNicole(); return; }
+  if (b.dataset.cdia) { nCal.ref = b.dataset.cdia; nCal.vista = "dia"; pintarNicole(); return; }
+  if (b.dataset.cev) return verCita(b.dataset.cev);
   if (b.id === "n-avisos") {
     try { const r = await Notification.requestPermission(); if (r === "granted") { toast("Notificaciones activadas"); avisoLocal("Enzō Spa", "Así te van a llegar los avisos de citas nuevas.", "prueba"); } }
     catch {}
