@@ -20,7 +20,10 @@ Página web y app instalable (PWA) de **Enzō Spa**, centro de relajación en De
 **Para Nicole** (Menú → 🔒 Acceso de Nicole)
 - **Citas**: lista por día con lugar, servicio, nota; botones de WhatsApp, llamar y cancelar.
 - Pasar citas al calendario del celular (solo las nuevas, sin duplicar).
-- **Sugerencias** recibidas.
+- **Ingresos**: montos estimados por semana y mes, por servicio y por lugar.
+- **Anotaciones** privadas en cada cita.
+- **Encuesta de satisfacción**: desde cada cita se envía por WhatsApp un link (`#encuesta=ID`); los resultados se ven en **Opiniones** junto con las sugerencias.
+- **Configuración**: notificaciones, avisos de ntfy, calendario, app y datos del negocio.
 - **Galería**: subir fotos desde el celular (se comprimen solas), agregar videos por link, ordenar y quitar.
 - Notificaciones del navegador para citas y sugerencias nuevas (con la app abierta o en segundo plano).
 
@@ -51,6 +54,7 @@ Página web y app instalable (PWA) de **Enzō Spa**, centro de relajación en De
 | `ocupados` | Todos (solo fecha y hora, sin datos personales) | Se crea junto con la cita; no se puede ocupar dos veces |
 | `sugerencias` | Solo Nicole | Cualquiera envía; Nicole borra |
 | `galeria` | Todos | Solo Nicole |
+| `encuestas` | Solo Nicole | El cliente con el link de su cita (una sola respuesta por cita) |
 
 ## Configuración (una sola vez)
 

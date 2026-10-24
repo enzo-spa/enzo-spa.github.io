@@ -59,6 +59,20 @@ service cloud.firestore {
       allow delete: if esNicole();
     }
 
+    // Encuestas de satisfacción: una por cita (el id es el de la cita); solo Nicole las lee.
+    match /encuestas/{id} {
+      allow create: if exists(/databases/$(database)/documents/citas/$(id))
+        && request.resource.data.keys().hasOnly(['estrellas','atencion','ambiente','recomendaria','comentario','nombre','fecha'])
+        && request.resource.data.estrellas is int && request.resource.data.estrellas >= 1 && request.resource.data.estrellas <= 5
+        && request.resource.data.atencion is int && request.resource.data.atencion >= 1 && request.resource.data.atencion <= 5
+        && request.resource.data.ambiente is int && request.resource.data.ambiente >= 1 && request.resource.data.ambiente <= 5
+        && request.resource.data.recomendaria in ['si', 'tal vez', 'no']
+        && request.resource.data.comentario is string && request.resource.data.comentario.size() <= 600
+        && request.resource.data.nombre is string && request.resource.data.nombre.size() <= 40
+        && request.resource.data.fecha == request.time;
+      allow read, delete: if esNicole();
+    }
+
     match /{path=**} { allow read, write: if false; }
   }
 }
