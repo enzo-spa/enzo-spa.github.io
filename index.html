@@ -573,6 +573,11 @@ section.panel{padding:0}
 .cierre-pub{background:rgba(201,164,92,.14);border:1px solid rgba(201,164,92,.55);color:var(--marfil);border-radius:14px;padding:12px 16px;display:grid;gap:2px;text-align:center}
 .cierre-pub b{color:var(--oro2);font-weight:500}
 .cierre-pub span{font-size:14px;color:#cfc6b8}
+.cie-tipo .chip{padding:10px;font-size:14px}
+.cie-it.parcial{border-color:#ecdcb5;background:#fdf9ef}
+.mes-cerr.par{color:#8a6a1c;font-weight:500}
+.cerr-h{position:absolute;left:0;right:0;z-index:0;background:repeating-linear-gradient(135deg,rgba(163,68,58,.08) 0 6px,rgba(163,68,58,.15) 6px 12px);border-top:1px solid rgba(163,68,58,.35);border-bottom:1px solid rgba(163,68,58,.35);overflow:hidden}
+.cerr-h span{display:block;font-size:11px;color:#a3443a;padding:2px 6px;font-weight:500}
 </style>
 </head>
 <body>
@@ -887,8 +892,16 @@ const h12m = m => { let a = Math.floor(m / 60), b = m % 60; const pm = a >= 12; 
 const h12 = h => h12m(aMin(h));
 const fechaLarga = f => { const d = deIso(f); return `${DIAS_L[d.getUTCDay()]} ${d.getUTCDate()} de ${MESES[d.getUTCMonth()]}`; };
 let CIERRES = [];   // [{id, desde, hasta, motivo}] fechas YYYY-MM-DD, ambas incluidas
-const cierreDe = f => CIERRES.find(c => f >= c.desde && f <= c.hasta);
-const turnosDe = f => cierreDe(f) ? [] : (HORARIO.find(h => h.dias.includes(deIso(f).getUTCDay())) || { turnos: [] }).turnos.map(t => [aMin(t[0]), aMin(t[1])]);
+const esParcial = c => c.ini != null && c.fin != null && c.fin > c.ini;
+const cierreDe = f => CIERRES.find(c => !esParcial(c) && f >= c.desde && f <= c.hasta);          // día completo
+const cierresHoras = f => CIERRES.filter(c => esParcial(c) && f >= c.desde && f <= c.hasta);     // solo unas horas
+function restarHoras(turnos, f){
+  let t = turnos;
+  for (const c of cierresHoras(f)) t = t.flatMap(([a, b]) => c.fin <= a || c.ini >= b ? [[a, b]] : [[a, Math.max(a, c.ini)], [Math.min(b, c.fin), b]].filter(([x, y]) => y - x >= 30));
+  return t;
+}
+const turnosDe = f => cierreDe(f) ? [] : restarHoras(turnosBase(f), f);
+const turnosBase = f => (HORARIO.find(h => h.dias.includes(deIso(f).getUTCDay())) || { turnos: [] }).turnos.map(t => [aMin(t[0]), aMin(t[1])]);
 const durTxt = d => d === 30 ? "30 min" : d === 60 ? "1 hora" : d === 90 ? "1 h 30 min" : d === 120 ? "2 horas" : `${d} min`;
 const nombreCorto = s => { const n = s.nombre.replace(/^Masaje /i, ""); return n.charAt(0).toLocaleUpperCase("es") + n.slice(1); };
 const precioHTML = s => s.precio ? `${esc(s.precio)}${s.antes ? ` <s style="font-size:.7em;color:#9a8f83;font-weight:400">${esc(s.antes)}</s>` : ""}` : "Consultar";
@@ -939,6 +952,7 @@ const ReservasPrueba = (() => {
     async moverGal(a, b){ const l = this.galeria() || []; const A = l.find(x => x.id === a), B = l.find(x => x.id === b); [A.orden, B.orden] = [B.orden, A.orden]; await this.guardarGal(l); },
     async guardarApuntes(id, txt){ const l = leer(); const c = l.find(x => x.id === id); if (c) { c.apuntes = txt; guardar(l); } else { const e = ejemplos().find(x => x.id === id); if (e) throw new Error("ejemplo"); } },
     encuestas(){ try { return JSON.parse(localStorage.getItem(KEY + "_enc") || "[]"); } catch { return []; } },
+    async borrarEncuesta(id){ const l = this.encuestas().filter(e => e.id !== id); try { localStorage.setItem(KEY + "_enc", JSON.stringify(l)); } catch {} },
     async enviarEncuesta(id, x){ const l = this.encuestas(); if (l.some(e => e.id === id)) throw new Error("repetida"); l.unshift({ ...x, id, fecha: Date.now() }); try { localStorage.setItem(KEY + "_enc", JSON.stringify(l)); } catch {} },
     sugerencias(){ try { return JSON.parse(localStorage.getItem(KEY + "_sug") || "[]"); } catch { return sugMem; } },
     async enviarSug(x){ const l = [{ ...x, id: "s" + Date.now().toString(36), fecha: Date.now() }, ...this.sugerencias()]; sugMem = l; try { localStorage.setItem(KEY + "_sug", JSON.stringify(l)); } catch {} },
@@ -982,12 +996,13 @@ async function crearReservasFirebase(){
     async agregarVideo(url, titulo){ await F.addDoc(F.collection(db, "galeria"), { tipo:"video", data:"", url, titulo, orden: Date.now() }); },
     async borrarGal(id){ await F.deleteDoc(F.doc(db, "galeria", id)); },
     cierres: () => CIERRES,
-    async agregarCierre(x){ await F.addDoc(F.collection(db, "cierres"), { desde: x.desde, hasta: x.hasta, motivo: x.motivo }); },
+    async agregarCierre(x){ await F.addDoc(F.collection(db, "cierres"), esParcial(x) ? { desde: x.desde, hasta: x.hasta, motivo: x.motivo, ini: x.ini, fin: x.fin } : { desde: x.desde, hasta: x.hasta, motivo: x.motivo }); },
     async borrarCierre(id){ await F.deleteDoc(F.doc(db, "cierres", id)); },
     async moverGal(a, b){ const A = gal.find(x => x.id === a), B = gal.find(x => x.id === b); const w = F.writeBatch(db);
       w.update(F.doc(db, "galeria", a), { orden: B.orden }); w.update(F.doc(db, "galeria", b), { orden: A.orden }); await w.commit(); },
     sugerencias: () => sugs,
     encuestas: () => encs,
+    async borrarEncuesta(id){ await F.deleteDoc(F.doc(db, "encuestas", id)); },
     async enviarEncuesta(id, x){ try { await F.setDoc(F.doc(db, "encuestas", id), { ...x, fecha: F.serverTimestamp() }); } catch (e) { console.warn(e); throw new Error("repetida"); } },
     async enviarSug(x){ await F.addDoc(F.collection(db, "sugerencias"), { texto:x.texto, nombre:x.nombre, fecha:F.serverTimestamp() }); },
     async borrarSug(id){ await F.deleteDoc(F.doc(db, "sugerencias", id)); },
@@ -1416,7 +1431,8 @@ function cierresCambiaron(){
   if (pila.includes("p-nicole")) pintarNicole();
 }
 const fechaCorta = f => { const d = deIso(f); return `${DIAS_C[d.getUTCDay()].toLowerCase()} ${d.getUTCDate()} ${MES_C[d.getUTCMonth()]}`; };
-const rangoTxt = c => c.desde === c.hasta ? fechaCorta(c.desde) : `${fechaCorta(c.desde)} al ${fechaCorta(c.hasta)}`;
+const rangoTxt = c => (c.desde === c.hasta ? fechaCorta(c.desde) : `${fechaCorta(c.desde)} al ${fechaCorta(c.hasta)}`) + (esParcial(c) ? ` · ${h12m(c.ini)} a ${h12m(c.fin)}` : "");
+const citasEnCierre = c => Reservas.todas().filter(x => x.fecha >= c.desde && x.fecha <= c.hasta && (!esParcial(c) || (x.ini < c.fin && x.ini + x.dur > c.ini)));
 let nCie = { abierto: false };
 function pintarCierres(){
   const hoy = iso(crAhora());
@@ -1425,13 +1441,16 @@ function pintarCierres(){
     <div class="cie-h"><h4>🚫 Cierres y días libres</h4><button class="chip${nCie.abierto ? " si" : ""}" data-cie-toggle>${nCie.abierto ? "Cancelar" : "+ Agregar cierre"}</button></div>
     ${nCie.abierto ? `<div class="cie-form">
       <div class="cie-rap"><button class="chip" data-cie-rap="dia">Solo un día</button><button class="chip" data-cie-rap="semana">Una semana</button><button class="chip" data-cie-rap="finde">Fin de semana</button></div>
-      <div class="cie-fechas"><label>Desde<input type="date" id="cie-desde" min="${hoy}" value="${nCie.desde || hoy}"></label><label>Hasta<input type="date" id="cie-hasta" min="${hoy}" value="${nCie.hasta || nCie.desde || hoy}"></label></div>
+      <div class="seg2 cie-tipo"><button class="chip${!nCie.horas ? " si" : ""}" data-cie-tipo="dia">Todo el día</button><button class="chip${nCie.horas ? " si" : ""}" data-cie-tipo="horas">Solo unas horas</button></div>
+      <div class="cie-fechas"><label>${nCie.horas ? "Desde el día" : "Desde"}<input type="date" id="cie-desde" min="${hoy}" value="${nCie.desde || hoy}"></label><label>${nCie.horas ? "Hasta el día" : "Hasta"}<input type="date" id="cie-hasta" min="${hoy}" value="${nCie.hasta || nCie.desde || hoy}"></label></div>
+      ${nCie.horas ? `<div class="cie-fechas"><label>De la hora<input type="time" id="cie-hini" step="1800" value="${nCie.hini || "12:00"}"></label><label>A la hora<input type="time" id="cie-hfin" step="1800" value="${nCie.hfin || "14:00"}"></label></div>
+      <p class="conf-nota">Esas horas se bloquean en cada día del rango. Ej.: almuerzo de 12:00 a 2:00 p. m. toda la semana.</p>` : ""}
       <label class="cie-mot">Motivo (opcional, lo ven los clientes)<input id="cie-motivo" maxlength="80" placeholder="Ej.: Vacaciones, feriado, capacitación" value="${esc(nCie.motivo || "")}"></label>
       <p class="error" id="cie-err"></p>
       <button class="btn btn-oro" style="width:100%" id="cie-ok">Cerrar esas fechas</button>
     </div>` : ""}
-    ${vig.length ? `<div class="cie-lista">${vig.map(c => { const n = Reservas.todas().filter(x => x.fecha >= c.desde && x.fecha <= c.hasta).length;
-      return `<div class="cie-it"><div><b>${rangoTxt(c)}</b><span>${c.motivo ? esc(c.motivo) : "Cerrado"}${n ? ` · ⚠️ ${n} cita${n === 1 ? "" : "s"} en esas fechas` : ""}</span></div><button class="rojo" data-cie-borrar="${c.id}">Quitar</button></div>`; }).join("")}</div>`
+    ${vig.length ? `<div class="cie-lista">${vig.map(c => { const n = citasEnCierre(c).length;
+      return `<div class="cie-it${esParcial(c) ? " parcial" : ""}"><div><b>${esParcial(c) ? "🕐 " : ""}${rangoTxt(c)}</b><span>${c.motivo ? esc(c.motivo) : esParcial(c) ? "Horas cerradas" : "Cerrado"}${n ? ` · ⚠️ ${n} cita${n === 1 ? "" : "s"} en ese horario` : ""}</span></div><button class="rojo" data-cie-borrar="${c.id}">Quitar</button></div>`; }).join("")}</div>`
       : `<p class="conf-nota">No hay cierres programados. Los días que cierres aparecen como <b>Cerrado</b> en la agenda de los clientes.</p>`}
   </section>`;
 }
@@ -1473,7 +1492,7 @@ function pintarCal(todas){
       if (i === 35 && fuera) break;
       const cerrado = !turnosDe(f).length;
       celdas += `<button class="mes-d${fuera ? " fuera" : ""}${cerrado ? " cerr" : ""}${cierreDe(f) ? " cie-d" : ""}" data-cdia="${f}">
-        <span class="n${f === hoy ? " hoy" : ""}">${d.getUTCDate()}</span>${cierreDe(f) ? `<span class="mes-cerr">cerrado</span>` : ""}
+        <span class="n${f === hoy ? " hoy" : ""}">${d.getUTCDate()}</span>${cierreDe(f) ? `<span class="mes-cerr">cerrado</span>` : cierresHoras(f).length ? `<span class="mes-cerr par">🕐 ${cierresHoras(f).map(c => h12m(c.ini).replace(/:00| /g, "").replace("p.m.", "p").replace("a.m.", "a")).join(",")}</span>` : ""}
         ${l.slice(0, 2).map(c => `<span class="mes-ev ${colorLugar(c.lugar)}">${h12m(c.ini).replace(/:00| /g, "").replace("p.m.", "p").replace("a.m.", "a")} ${esc(c.nombre.split(" ")[0])}</span>`).join("")}
         ${l.length > 2 ? `<span class="mas">+${l.length - 2} más</span>` : ""}</button>`;
     }
@@ -1486,6 +1505,7 @@ function pintarCal(todas){
   const col = f => {
     const cerr = (() => { const t = turnosDe(f); let out = ""; let pos = ha;
       for (const [a, b] of t) { if (a > pos) out += `<div class="cerr-b" style="top:${(pos - ha) / 60 * H}px;height:${(a - pos) / 60 * H}px"></div>`; pos = Math.max(pos, b); }
+      for (const c of cierresHoras(f)) { const a = Math.max(ha, c.ini), z = Math.min(hb, c.fin); if (z > a) out += `<div class="cerr-h" style="top:${(a - ha) / 60 * H}px;height:${(z - a) / 60 * H}px"><span>🕐 Cerrado${c.motivo ? " · " + esc(c.motivo) : ""}</span></div>`; }
       if (pos < hb) out += `<div class="cerr-b" style="top:${(pos - ha) / 60 * H}px;height:${(hb - pos) / 60 * H}px"></div>`; return out; })();
     const evs = porDia(f).map(c => `<button class="ev ${colorLugar(c.lugar)}" data-cev="${c.id}" style="top:${(c.ini - ha) / 60 * H + 1}px;height:${c.dur / 60 * H - 2}px">
         <b>${c.apuntes ? "🗒️ " : ""}${esc(nCal.vista === "dia" ? c.nombre : c.nombre.split(" ")[0])}</b>${nCal.vista === "dia" ? `<span>${h12m(c.ini)} – ${h12m(c.ini + c.dur)} · ${esc(c.servicio)} · ${LUGARES[c.lugar]?.corto || ""}</span>` : `<span>${h12m(c.ini).replace(" ", "")}</span>`}</button>`).join("");
@@ -1613,6 +1633,10 @@ function pintarConfig(){
         ${Object.values(LUGARES).map(l => `<li><b>📍 ${l.nombre}</b><span>${esc(l.dir)}</span></li>`).join("")}
         <li><b>Servicios</b><span>${SERVICIOS.length} con precio</span></li></ul>
       <p class="conf-nota">Para cambiar precios, horario o servicios, escríbele a RBM Solutions.</p></section>
+    <section class="conf-s"><h4>🧹 Empezar de cero</h4>
+      <p class="conf-p">Borra <b>todas las citas, encuestas y sugerencias</b> (por ejemplo, las de prueba). La galería, los cierres y la configuración se mantienen.</p>
+      <label class="cie-mot" style="display:grid;gap:4px;font-size:13px;color:#5d554c">Para confirmar, escribe <b>BORRAR</b><input id="c-cero-txt" autocomplete="off" style="border:1px solid #d6cdbf;border-radius:10px;padding:10px;font:400 15px var(--sans)"></label>
+      <button class="btn btn-linea conf-b" style="color:#a3443a;border-color:#e3c3bd" id="c-cero">Borrar todo y empezar de cero</button></section>
     <section class="conf-s"><h4>👤 Cuenta</h4>
       <p class="conf-p">Sesión iniciada como <b>${esc(NICOLE_EMAIL)}</b>${Reservas.prueba ? " (modo de prueba)" : ""}.</p>
       <button class="btn btn-linea conf-b" style="color:#a3443a;border-color:#e3c3bd" id="n-salir2">Cerrar sesión</button></section>
@@ -1668,7 +1692,7 @@ function pintarNicole(){
         <div class="det"><div><small>Atención</small><b>${prom("atencion").toFixed(1)} ★</b></div><div><small>Ambiente</small><b>${prom("ambiente").toFixed(1)} ★</b></div><div><small>Recomendarían</small><b>${recom}%</b></div></div></div>
       ${encs.map(e => `<div class="cita-a"><div class="h"><b style="font-size:17px">${esc(e.nombre || "Anónimo")}</b><span>${new Date(e.fecha).toLocaleDateString("es-CR", { day:"numeric", month:"short" })}</span></div>
         <p><span class="estr">${estrellasTxt(e.estrellas)}</span> · Atención ${e.atencion}★ · Ambiente ${e.ambiente}★ · ${e.recomendaria === "si" ? "👍 Recomendaría" : e.recomendaria === "no" ? "👎 No recomendaría" : "🤔 Tal vez"}</p>
-        ${e.comentario ? `<p style="white-space:pre-wrap">“${esc(e.comentario)}”</p>` : ""}</div>`).join("")}`
+        ${e.comentario ? `<p style="white-space:pre-wrap">“${esc(e.comentario)}”</p>` : ""}<div class="acc"><button class="rojo" data-borrar-enc="${e.id}">Borrar</button></div></div>`).join("")}`
       : `<div class="vacio">Todavía no hay encuestas. Envíalas desde cada cita con el botón <b>Enviar encuesta por WhatsApp</b>.</div>`;
     box.innerHTML = pest + ``
       + `<h4 class="op-t">Encuestas de satisfacción</h4>` + resumen + `<h4 class="op-t">Sugerencias</h4>` + (sugs.length ? sugs.map(x => `<div class="cita-a"><div class="h"><b style="font-size:17px">${esc(x.nombre || "Anónimo")}</b><span>${new Date(x.fecha).toLocaleDateString("es-CR", { day:"numeric", month:"short" })}</span></div>
@@ -1723,6 +1747,7 @@ $("#nicole").addEventListener("click", async e => {
     envMarcar(c.id); setTimeout(pintarNicole, 300); return; }
   if (b.dataset.cv) { nCal.vista = b.dataset.cv; pintarNicole(); return; }
   if (b.hasAttribute("data-cie-toggle")) { nCie = { abierto: !nCie.abierto }; pintarNicole(); if (nCie.abierto) setTimeout(() => $("#nicole .cie")?.scrollIntoView({ behavior:"smooth", block:"start" }), 50); return; }
+  if (b.dataset.cieTipo) { nCie.horas = b.dataset.cieTipo === "horas"; pintarNicole(); return; }
   if (b.dataset.cieRap) { const r = b.dataset.cieRap; let a = deIso($("#cie-desde").value || iso(crAhora()));
     if (r === "finde") { while (a.getUTCDay() !== 6) a = masDias(a, 1); }
     nCie.desde = iso(a); nCie.hasta = iso(masDias(a, r === "semana" ? 6 : r === "finde" ? 1 : 0)); nCie.motivo = $("#cie-motivo").value; pintarNicole(); return; }
@@ -1731,10 +1756,13 @@ $("#nicole").addEventListener("click", async e => {
     const err = t => $("#cie-err").textContent = t;
     if (!desde || !hasta) return err("Escoge las dos fechas.");
     if (hasta < desde) return err("La fecha final no puede ser antes de la inicial.");
-    const n = Reservas.todas().filter(x => x.fecha >= desde && x.fecha <= hasta).length;
+    let ini = null, fin = null;
+    if (nCie.horas) { const a = $("#cie-hini").value, z = $("#cie-hfin").value; if (!a || !z) return err("Escoge las horas."); ini = aMin(a); fin = aMin(z); if (fin <= ini) return err("La hora final tiene que ser después de la inicial."); }
+    const nuevo = { desde, hasta, motivo, ...(nCie.horas ? { ini, fin } : {}) };
+    const n = citasEnCierre(nuevo).length;
     if (n && !confirm(`Hay ${n} cita${n === 1 ? "" : "s"} reservada${n === 1 ? "" : "s"} en esas fechas. No se cancelan solas: avísale a esos clientes. ¿Cerrar igual?`)) return;
     b.disabled = true;
-    try { await Reservas.agregarCierre({ desde, hasta, motivo }); nCie = { abierto: false }; toast("Fechas cerradas"); pintarNicole(); }
+    try { await Reservas.agregarCierre(nuevo); nCie = { abierto: false }; toast(esParcial(nuevo) ? "Horas cerradas" : "Fechas cerradas"); pintarNicole(); }
     catch { b.disabled = false; err("No se pudo guardar. Revisa tu conexión."); }
     return;
   }
@@ -1765,10 +1793,22 @@ $("#nicole").addEventListener("click", async e => {
   }
   if (b.id === "g-restaurar") { if (!confirm("¿Volver a las fotos originales? Se quitan las que subiste.")) return;
     for (const x of [...(Reservas.galeria() || [])]) { try { await Reservas.borrarGal(x.id); } catch {} } pintarGaleria(); pintarNicole(); return; }
+  if (b.dataset.borrarEnc) { if (!confirm("¿Borrar esta encuesta?")) return; try { await Reservas.borrarEncuesta(b.dataset.borrarEnc); pintarNicole(); toast("Encuesta borrada"); } catch { toast("No se pudo borrar. Revisa tu conexión."); } return; }
   if (b.dataset.borrarSug) { if (!confirm("¿Borrar esta sugerencia?")) return; try { await Reservas.borrarSug(b.dataset.borrarSug); pintarNicole(); } catch { toast("No se pudo borrar. Revisa tu conexión."); } return; }
   if (b.id === "c-prueba-local") { avisoLocal("Enzō Spa · prueba", "Así te van a llegar los avisos de citas nuevas.", "prueba"); toast("Notificación enviada"); return; }
   if (b.id === "c-copiar-tema") { try { await navigator.clipboard.writeText(NTFY_TEMA); toast("Tema copiado"); } catch { prompt("Copia el tema:", NTFY_TEMA); } return; }
   if (b.id === "c-prueba-ntfy") { try { await fetch("https://ntfy.sh/", { method:"POST", body: JSON.stringify({ topic: NTFY_TEMA, title: "Enzō Spa · prueba", message: "Si ves esto, los avisos de ntfy funcionan ✓", tags:["white_check_mark"] }) }); toast("Aviso enviado. Revisa ntfy."); } catch { toast("No se pudo enviar. Revisa tu conexión."); } return; }
+  if (b.id === "c-cero") {
+    if ($("#c-cero-txt").value.trim().toUpperCase() !== "BORRAR") return toast("Escribe BORRAR para confirmar.");
+    const citas = [...Reservas.todas()], encs = [...Reservas.encuestas()], sugs = [...Reservas.sugerencias()];
+    if (!confirm(`Se van a borrar ${citas.length} citas, ${encs.length} encuestas y ${sugs.length} sugerencias. Esto no se puede deshacer. ¿Seguir?`)) return;
+    b.disabled = true; b.textContent = "Borrando…"; let fallos = 0;
+    for (const c of citas) { try { await Reservas.cancelar(c.id); } catch { fallos++; } }
+    for (const e of encs) { try { await Reservas.borrarEncuesta(e.id); } catch { fallos++; } }
+    for (const x of sugs) { try { await Reservas.borrarSug(x.id); } catch { fallos++; } }
+    calGuardar({}); try { localStorage.removeItem(ENV_KEY); } catch {} envMem = {};
+    toast(fallos ? `Listo, pero ${fallos} no se pudieron borrar. Intenta de nuevo.` : "Listo: todo quedó en cero ✓"); nVista = "citas"; pintarNicole(); return;
+  }
   if (b.id === "c-cal-reset") { if (!confirm("¿Olvidar cuáles citas ya pasaste al calendario? El botón volverá a ofrecerlas todas.")) return; calGuardar({}); toast("Listo"); pintarNicole(); return; }
   if (b.id === "c-instalar") { if (eventoInstalar) { eventoInstalar.prompt(); eventoInstalar = null; } return; }
   if (b.id === "c-actualizar") { try { const r = await navigator.serviceWorker?.getRegistration(); if (r) { await r.update(); toast("Buscando actualización… si hay una, se aplica al volver a abrir."); } else toast("La app ya está al día."); } catch { toast("No se pudo revisar ahora."); } return; }
@@ -1777,7 +1817,7 @@ $("#nicole").addEventListener("click", async e => {
   if (b.dataset.cancel) { if (!confirm("¿Cancelar esta cita? El espacio queda libre otra vez.")) return; try { const estaba = enCalendario(Reservas.todas().find(x => x.id === b.dataset.cancel) || {}); await Reservas.cancelar(b.dataset.cancel); pintarNicole(); toast(estaba ? "Cita cancelada. Bórrala también de tu calendario." : "Cita cancelada"); } catch { toast("No se pudo cancelar. Revisa tu conexión."); } }
 });
 $("#nicole").addEventListener("click", e => { const a = e.target.closest("a[data-enviar-enc]"); if (a) { envMarcar(a.dataset.enviarEnc); setTimeout(pintarNicole, 600); } });
-$("#nicole").addEventListener("input", e => { if (e.target.id === "cie-desde") { nCie.desde = e.target.value; const h = $("#cie-hasta"); if (h && h.value < e.target.value) h.value = e.target.value; nCie.hasta = h?.value; } if (e.target.id === "cie-hasta") nCie.hasta = e.target.value; if (e.target.id === "cie-motivo") nCie.motivo = e.target.value; });
+$("#nicole").addEventListener("input", e => { if (e.target.id === "cie-desde") { nCie.desde = e.target.value; const h = $("#cie-hasta"); if (h && h.value < e.target.value) h.value = e.target.value; nCie.hasta = h?.value; } if (e.target.id === "cie-hasta") nCie.hasta = e.target.value; if (e.target.id === "cie-motivo") nCie.motivo = e.target.value; if (e.target.id === "cie-hini") nCie.hini = e.target.value; if (e.target.id === "cie-hfin") nCie.hfin = e.target.value; });
 $("#nicole").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "n-clave") $("#n-ok").click(); });
 
 // ================== SUGERENCIAS ==================
@@ -1881,7 +1921,7 @@ pintarLugares();
 const hoyD = crAhora().getUTCDay();
 function pintarHorario(){
 const hoyF = iso(crAhora()), prox = CIERRES.filter(c => c.hasta >= hoyF && c.desde <= iso(masDias(deIso(hoyF), 45)));
-$("#cierres-aviso").innerHTML = prox.map(c => `<div class="cierre-pub"><b>📅 Cerrado ${c.desde === c.hasta ? "el" : "del"} ${rangoTxt(c)}</b>${c.motivo ? `<span>${esc(c.motivo)}</span>` : ""}</div>`).join("");
+$("#cierres-aviso").innerHTML = prox.map(c => `<div class="cierre-pub"><b>📅 ${esParcial(c) ? `Cerrado de ${h12m(c.ini)} a ${h12m(c.fin)}, ${c.desde === c.hasta ? "el " + fechaCorta(c.desde) : "del " + fechaCorta(c.desde) + " al " + fechaCorta(c.hasta)}` : `Cerrado ${c.desde === c.hasta ? "el" : "del"} ${rangoTxt(c)}`}</b>${c.motivo ? `<span>${esc(c.motivo)}</span>` : ""}</div>`).join("");
 $("#tabla-horario").innerHTML = HORARIO.map(h => `
   <div class="dia${h.dias.includes(hoyD) ? " hoy" : ""}">
     <svg><use href="#${h.sol ? "sol" : "loto"}"/></svg>
