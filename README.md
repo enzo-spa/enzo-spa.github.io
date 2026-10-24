@@ -64,6 +64,10 @@ Página web y app instalable (PWA) de **Enzō Spa**, centro de relajación en De
 
 > ⚠️ Nunca subir la llave JSON al repositorio ni compartirla. Solo va en *Secrets*.
 
+## Próximos pasos
+
+- [Roadmap de migración a React Native (Atomic Design + SOLID)](docs/roadmap-react-native.md)
+
 ## Hacer cambios
 
 - Editar `index.html` y subirlo (o pedírselo a Claude, que tiene acceso a este repositorio). GitHub Pages publica en 1 a 5 minutos.
