@@ -766,6 +766,20 @@ const ReservasCargando = { prueba:false, nicole:false, ocupados:() => new Set(),
   async reservar(){ throw new Error("cargando"); }, async cancelar(){}, async entrar(){ throw new Error("cargando"); }, salir(){} };
 let Reservas = FIREBASE ? ReservasCargando : ReservasPrueba;
 
+// Link que abre la página y agrega la cita al calendario del celular
+function linkCalendario(c){
+  const datos = { i:c.id, f:c.fecha, s:c.ini, d:c.dur, n:c.nombre, t:c.tel, v:c.servicio, l:c.lugar, o:c.nota || "" };
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(datos)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return location.href.split("#")[0] + "#cal=" + b64;
+}
+function citaDeLink(){
+  const m = location.hash.match(/^#cal=([\w-]+)$/); if (!m) return null;
+  try {
+    const t = m[1].replace(/-/g, "+").replace(/_/g, "/");
+    const d = JSON.parse(decodeURIComponent(escape(atob(t + "===".slice((t.length + 3) % 4)))));
+    return { id:d.i, fecha:d.f, ini:+d.s, dur:+d.d, nombre:d.n, tel:d.t, servicio:d.v, lugar:d.l, nota:d.o };
+  } catch { return null; }
+}
 // Aviso a Nicole por la app ntfy (llega como notificación al celular)
 function avisarNicole(c){
   if (!NTFY_TEMA) return;
@@ -773,7 +787,7 @@ function avisarNicole(c){
   const cuerpo = { topic: NTFY_TEMA, title: `Nueva cita en ${LUGARES[c.lugar]?.nombre || "Enzō"}: ${c.nombre}`, tags: ["calendar"], priority: 4,
     message: `📍 ${LUGARES[c.lugar]?.nombre || "Sin lugar"}\n${c.servicio}\n${fechaLarga(c.fecha)}\n${h12m(c.ini)} a ${h12m(c.ini + c.dur)} (${durTxt(c.dur)})\nCel: ${c.tel}${c.nota ? "\nNota: " + c.nota : ""}`,
     click: location.href.split("#")[0],
-    actions: [ { action:"view", label:"Agregar al calendario", url: gcal(c, true) }, { action:"view", label:"WhatsApp", url:`https://wa.me/${t506}` } ] };
+    actions: [ { action:"view", label:"Agregar al calendario", url: linkCalendario(c) }, { action:"view", label:"WhatsApp", url:`https://wa.me/${t506}` } ] };
   try { fetch("https://ntfy.sh/", { method:"POST", body: JSON.stringify(cuerpo) }).catch(() => {}); } catch {}
 }
 
@@ -1262,6 +1276,21 @@ if (FIREBASE) crearReservasFirebase().then(r => {
   if (pila.includes("p-agenda") && !ag.hecho) pintarAgenda();
   if (pila.includes("p-nicole")) pintarNicole();
 }).catch(e => { console.warn("Firebase no cargó", e); toast("Sin conexión. Intenta de nuevo en un momento."); });
+// Si se abrió desde el botón "Agregar al calendario" de la notificación
+(() => {
+  const c = citaDeLink(); if (!c) return;
+  history.replaceState(null, "", location.pathname + location.search);
+  const el = document.createElement("div"); el.className = "hoja on"; el.id = "hoja-cal"; el.setAttribute("role", "dialog");
+  el.innerHTML = `<div class="asa"></div><h3>Agregar a tu calendario</h3>
+    <div class="resumen" style="margin-top:14px"><small>Cita</small><b>${esc(c.nombre)} · ${esc(c.servicio)}${LUGARES[c.lugar] ? " · " + LUGARES[c.lugar].nombre : ""}<br>${fechaLarga(c.fecha)}<br>${h12m(c.ini)} a ${h12m(c.ini + c.dur)}</b></div>
+    <button class="btn btn-oro" style="width:100%;padding:16px" id="hc-ok">${CAL}Agregar a mi calendario</button>
+    <button class="cancel" id="hc-no">Ahora no</button>`;
+  const velo = $("#velo"); velo.classList.add("on"); velo.style.zIndex = 60;
+  document.body.appendChild(el);
+  const cerrar = () => { el.remove(); velo.classList.remove("on"); velo.style.zIndex = 50; };
+  el.querySelector("#hc-ok").onclick = () => { descargarIcs([c], "cita-" + c.fecha); setTimeout(cerrar, 600); };
+  el.querySelector("#hc-no").onclick = cerrar;
+})();
 window.__dbg = { get ag(){ return ag; }, get pila(){ return pila; }, pintarAgenda, get R(){ return Reservas; } };
 </script>
 </body>
