@@ -459,6 +459,47 @@ section.panel{padding:0}
 .mev-in{padding:16px 18px 18px}
 .mev-in h3{font-family:var(--serif);font-size:28px;font-weight:600;line-height:1.1}
 .modal-ev .ev-acc:last-child{margin-bottom:0}
+.n-tabs{grid-template-columns:repeat(4,1fr)!important;margin-bottom:16px;gap:6px!important}
+.n-tabs .chip{padding:11px 4px;font-size:13.5px}
+.ing{display:grid;gap:14px}
+.ing-total{background:var(--tinta);color:var(--marfil);border-radius:18px;padding:18px 20px;display:grid;gap:2px}
+.ing-total small{font:500 11.5px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--oro2)}
+.ing-total b{font-family:var(--serif);font-size:40px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.ing-total span{font-size:14px;color:#cfc6b8}
+.ing-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ing-kpis div{background:#fff;border:1px solid var(--marfil2);border-radius:14px;padding:10px 12px;min-width:0}
+.ing-kpis small{display:block;font-size:11px;color:#8a8076;line-height:1.3}
+.ing-kpis b{font-family:var(--serif);font-size:19px;font-weight:600;color:var(--tinta);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ing-box{background:#fff;border:1px solid var(--marfil2);border-radius:16px;padding:14px 16px}
+.ing-box h4{font:500 12px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:#7a7065;margin-bottom:12px}
+.ing-dias{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;height:140px;align-items:end}
+.ing-dias.id-semana{gap:8px}
+.ing-dia{display:grid;grid-template-rows:auto 1fr auto;height:100%;align-items:end;text-align:center;min-width:0}
+.ing-dia i{display:block;background:linear-gradient(var(--oro2),var(--oro3));border-radius:4px 4px 1px 1px;min-height:2px;align-self:end}
+.ing-dia.hoy i{background:var(--tinta)}
+.ing-dia .v{font-size:10px;color:#6a6158;white-space:nowrap;overflow:hidden}
+.ing-dia small{font-size:10.5px;color:#8a8076;padding-top:4px;min-height:18px}
+.ing-dia > i{height:0}
+.ing-fila{margin-bottom:10px}.ing-fila:last-child{margin-bottom:0}
+.ing-fila .t{display:flex;justify-content:space-between;gap:10px;font-size:14.5px;margin-bottom:5px}
+.ing-fila em{font-style:normal;color:#8a8076;font-size:13px}
+.ing-fila b{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.ing-fila .bar{height:8px;background:#f1ebe1;border-radius:9px;overflow:hidden}
+.ing-fila .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--oro3),var(--oro2));border-radius:9px}
+.ing-lug{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ing-lug div{border-radius:12px;padding:12px 14px}
+.ing-lug small{display:block;font-size:12.5px;margin-bottom:2px}
+.ing-lug b{font-family:var(--serif);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.ing-vacio{color:#8a8076;font-size:14px}
+
+.apuntes{display:grid;gap:6px;background:#fff;border:1px solid var(--marfil2);border-radius:14px;padding:12px;margin-bottom:12px}
+.apuntes label{font-weight:600;font-size:14px}
+.apuntes label small{font-weight:400;color:#8a8076}
+.apuntes textarea{width:100%;border:1px solid #d6cdbf;border-radius:10px;padding:10px;font:400 15px var(--sans);color:var(--tinta);resize:vertical;background:#fffdf9}
+.ap-pie{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ap-pie span{font-size:13px;color:#3f7a4f}
+.ap-pie .btn{padding:9px 14px;font-size:12px}
+.ap-mini{display:inline-block;margin-top:4px;background:#fbf6ea;border-radius:8px;padding:4px 8px;font-size:13.5px;color:#5d4a20}
 </style>
 </head>
 <body>
@@ -796,6 +837,7 @@ const ReservasPrueba = (() => {
     async agregarVideo(url, titulo){ const l = this.galeria() || []; await this.guardarGal([...l, { id:"g" + Date.now().toString(36), tipo:"video", url, titulo, orden: Date.now() }]); },
     async borrarGal(id){ await this.guardarGal((this.galeria() || []).filter(x => x.id !== id)); },
     async moverGal(a, b){ const l = this.galeria() || []; const A = l.find(x => x.id === a), B = l.find(x => x.id === b); [A.orden, B.orden] = [B.orden, A.orden]; await this.guardarGal(l); },
+    async guardarApuntes(id, txt){ const l = leer(); const c = l.find(x => x.id === id); if (c) { c.apuntes = txt; guardar(l); } else { const e = ejemplos().find(x => x.id === id); if (e) throw new Error("ejemplo"); } },
     sugerencias(){ try { return JSON.parse(localStorage.getItem(KEY + "_sug") || "[]"); } catch { return sugMem; } },
     async enviarSug(x){ const l = [{ ...x, id: "s" + Date.now().toString(36), fecha: Date.now() }, ...this.sugerencias()]; sugMem = l; try { localStorage.setItem(KEY + "_sug", JSON.stringify(l)); } catch {} },
     async borrarSug(id){ const l = this.sugerencias().filter(x => x.id !== id); sugMem = l; try { localStorage.setItem(KEY + "_sug", JSON.stringify(l)); } catch {} },
@@ -842,6 +884,7 @@ async function crearReservasFirebase(){
     sugerencias: () => sugs,
     async enviarSug(x){ await F.addDoc(F.collection(db, "sugerencias"), { texto:x.texto, nombre:x.nombre, fecha:F.serverTimestamp() }); },
     async borrarSug(id){ await F.deleteDoc(F.doc(db, "sugerencias", id)); },
+    async guardarApuntes(id, txt){ await F.updateDoc(F.doc(db, "citas", id), { apuntes: txt }); const c = citas.find(x => x.id === id); if (c) c.apuntes = txt; },
     async entrar(clave){ await A.signInWithEmailAndPassword(auth, NICOLE_EMAIL, clave); },
     salir(){ A.signOut(auth); }
   };
@@ -865,7 +908,7 @@ async function crearReservasFirebase(){
       sugs = snap.docs.map(d => { const v = d.data(); return { id:d.id, ...v, fecha: v.fecha?.toMillis ? v.fecha.toMillis() : Date.now() }; }).sort((a, b) => b.fecha - a.fecha);
       if (pila.includes("p-nicole")) pintarNicole();
     }, e => console.warn("sugerencias", e));
-    if (R.nicole) quitarCitas = F.onSnapshot(F.query(F.collection(db, "citas"), F.where("fecha", ">=", iso(masDias(deIso(iso(crAhora())), -31)))), snap => {
+    if (R.nicole) quitarCitas = F.onSnapshot(F.query(F.collection(db, "citas"), F.where("fecha", ">=", iso(masDias(deIso(iso(crAhora())), -400)))), snap => {
       const nuevas = citas.length || citasCargadas ? snap.docs.filter(d => !citas.some(c => c.id === d.id)).map(d => ({ id:d.id, ...d.data() })) : [];
       citas = snap.docs.map(d => ({ id:d.id, ...d.data() })); citasCargadas = true;
       for (const c of nuevas) avisoLocal(`Nueva cita en ${LUGARES[c.lugar]?.nombre || "Enzō"}: ${c.nombre}`, `${c.servicio} · ${fechaLarga(c.fecha)} · ${h12m(c.ini)}`, "cita-" + c.id);
@@ -1162,7 +1205,7 @@ function descargarIcs(lista, nombre){
   const tx = t => String(t).replace(/\\/g, "\\\\").replace(/([,;])/g, "\\$1").replace(/\n/g, "\\n");
   const ahora = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
   const ev = lista.map(c => ["BEGIN:VEVENT", `UID:${c.id}@enzospa`, `DTSTAMP:${ahora}`, `SEQUENCE:${reg[c.id] ? (reg[c.id].f === firmaCita(c) ? reg[c.id].s : reg[c.id].s + 1) : 0}`, `DTSTART:${f(c.fecha, c.ini)}`, `DTEND:${f(c.fecha, c.ini + c.dur)}`,
-    `SUMMARY:${tx(c.nombre + " · " + c.servicio + (LUGARES[c.lugar] ? " · " + LUGARES[c.lugar].corto : ""))}`, ...(LUGARES[c.lugar] ? [`LOCATION:${tx("Enzō " + LUGARES[c.lugar].nombre + " - " + LUGARES[c.lugar].dir)}`, `GEO:${LUGARES[c.lugar].lat};${LUGARES[c.lugar].lng}`] : []), `DESCRIPTION:${tx("Cel: " + c.tel + (c.nota ? "\nNota: " + c.nota : ""))}`,
+    `SUMMARY:${tx(c.nombre + " · " + c.servicio + (LUGARES[c.lugar] ? " · " + LUGARES[c.lugar].corto : ""))}`, ...(LUGARES[c.lugar] ? [`LOCATION:${tx("Enzō " + LUGARES[c.lugar].nombre + " - " + LUGARES[c.lugar].dir)}`, `GEO:${LUGARES[c.lugar].lat};${LUGARES[c.lugar].lng}`] : []), `DESCRIPTION:${tx("Cel: " + c.tel + (c.nota ? "\nNota del cliente: " + c.nota : "") + (c.apuntes ? "\nMis anotaciones: " + c.apuntes : ""))}`,
     "BEGIN:VALARM", "TRIGGER:-PT30M", "ACTION:DISPLAY", "DESCRIPTION:Cita en 30 minutos", "END:VALARM", "END:VEVENT"].join("\r\n"));
   const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Enzo Spa//Citas//ES", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", ...ev, "END:VCALENDAR"].join("\r\n");
   const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
@@ -1250,7 +1293,7 @@ function pintarCal(todas){
       for (const [a, b] of t) { if (a > pos) out += `<div class="cerr-b" style="top:${(pos - ha) / 60 * H}px;height:${(a - pos) / 60 * H}px"></div>`; pos = Math.max(pos, b); }
       if (pos < hb) out += `<div class="cerr-b" style="top:${(pos - ha) / 60 * H}px;height:${(hb - pos) / 60 * H}px"></div>`; return out; })();
     const evs = porDia(f).map(c => `<button class="ev ${colorLugar(c.lugar)}" data-cev="${c.id}" style="top:${(c.ini - ha) / 60 * H + 1}px;height:${c.dur / 60 * H - 2}px">
-        <b>${esc(nCal.vista === "dia" ? c.nombre : c.nombre.split(" ")[0])}</b>${nCal.vista === "dia" ? `<span>${h12m(c.ini)} – ${h12m(c.ini + c.dur)} · ${esc(c.servicio)} · ${LUGARES[c.lugar]?.corto || ""}</span>` : `<span>${h12m(c.ini).replace(" ", "")}</span>`}</button>`).join("");
+        <b>${c.apuntes ? "🗒️ " : ""}${esc(nCal.vista === "dia" ? c.nombre : c.nombre.split(" ")[0])}</b>${nCal.vista === "dia" ? `<span>${h12m(c.ini)} – ${h12m(c.ini + c.dur)} · ${esc(c.servicio)} · ${LUGARES[c.lugar]?.corto || ""}</span>` : `<span>${h12m(c.ini).replace(" ", "")}</span>`}</button>`).join("");
     const linea = f === hoy && minAhora >= ha && minAhora <= hb ? `<div class="ahora" style="top:${(minAhora - ha) / 60 * H}px"></div>` : "";
     return `<div class="col${f === hoy ? " es-hoy" : ""}" style="height:${alto}px">${cerr}${evs}${linea}</div>`;
   };
@@ -1270,7 +1313,10 @@ function verCita(id){
     <div class="mev-in">
     <div class="ev-det"><span class="ev-punto ${colorLugar(c.lugar)}"></span><div><h3>${esc(c.nombre)}</h3>
       <p>${fechaLarga(c.fecha).replace(/^./, x => x.toUpperCase())} · ${h12m(c.ini)} – ${h12m(c.ini + c.dur)}</p></div></div>
-    <ul class="ev-lista"><li>💆 ${esc(c.servicio)} · ${durTxt(c.dur)}</li><li>📍 ${LUGARES[c.lugar]?.nombre || "Sin lugar"}</li><li>📱 ${esc(c.tel)}</li>${c.nota ? `<li>📝 “${esc(c.nota)}”</li>` : ""}</ul>
+    <ul class="ev-lista"><li>💆 ${esc(c.servicio)} · ${durTxt(c.dur)} · <b>${colones(montoCita(c))}</b></li><li>📍 ${LUGARES[c.lugar]?.nombre || "Sin lugar"}</li><li>📱 ${esc(c.tel)}</li>${c.nota ? `<li>💬 Cliente: “${esc(c.nota)}”</li>` : ""}</ul>
+    <div class="apuntes"><label for="ev-apuntes">🗒️ Mis anotaciones <small>(solo tú las ves)</small></label>
+      <textarea id="ev-apuntes" rows="3" maxlength="1000" placeholder="Ej.: trabajar zona lumbar, prefiere aceite sin aroma, pagó por SINPE…">${esc(c.apuntes || "")}</textarea>
+      <div class="ap-pie"><span id="ev-ap-est"></span><button class="btn btn-osc" id="ev-ap-ok">Guardar anotación</button></div></div>
     <div class="ev-acc"><a class="btn btn-oro" href="https://wa.me/${t506}" target="_blank" rel="noopener"><svg><use href="#wa"/></svg>WhatsApp</a><a class="btn btn-osc" href="tel:${tel}">Llamar</a></div>
     <div class="ev-acc"><button class="btn btn-linea" style="color:var(--tinta);border-color:var(--oro)" data-cal="${c.id}">${enCalendario(c) ? "✓ En mi calendario" : "📅 A mi calendario"}</button><button class="btn btn-linea" style="color:#a3443a;border-color:#e3c3bd" data-cancel="${c.id}">Cancelar cita</button></div>
     </div>`;
@@ -1282,6 +1328,13 @@ function verCita(id){
   el.addEventListener("click", async e => {
     const b = e.target.closest("button"); if (!b) return;
     if (b.hasAttribute("data-cerrar-ev")) return cerrar();
+    if (b.id === "ev-ap-ok") {
+      const txt = el.querySelector("#ev-apuntes").value.trim().slice(0, 1000), est = el.querySelector("#ev-ap-est");
+      b.disabled = true; est.textContent = "Guardando…";
+      try { await Reservas.guardarApuntes(c.id, txt); c.apuntes = txt; est.textContent = "✓ Guardado"; pintarNicole(); }
+      catch (ex) { est.textContent = ex.message === "ejemplo" ? "Las citas de ejemplo no se pueden editar." : "No se pudo guardar. Revisa tu conexión."; }
+      b.disabled = false; return;
+    }
     if (b.dataset.cal || b.dataset.cancel) { cerrar();
       // reutiliza las mismas acciones del panel
       const fake = document.createElement("button"); if (b.dataset.cal) fake.dataset.cal = b.dataset.cal; else fake.dataset.cancel = b.dataset.cancel;
@@ -1289,6 +1342,55 @@ function verCita(id){
   });
 }
 
+// ===== Montos estimados según el precio de cada servicio =====
+let nIng = { vista: "mes", ref: null };
+const colones = n => "₡" + Math.round(n).toLocaleString("es-CR").replace(/\s/g, ".");
+const precioNum = s => +String(s?.precio || "").replace(/[^\d]/g, "") || 0;
+// Estimado: precio del servicio proporcional a la duración reservada (ej.: 2 h de un servicio de 1 h = doble).
+function montoCita(c){ const s = SERVICIOS.find(x => x.nombre === c.servicio); if (!s) return 0; return precioNum(s) * (c.dur / (s.dur || 60)); }
+function pintarIngresos(){
+  const hoy = iso(crAhora()); if (!nIng.ref) nIng.ref = hoy;
+  const r = deIso(nIng.ref);
+  let ini, fin, titulo;
+  if (nIng.vista === "semana") { const l = masDias(r, -((r.getUTCDay() + 6) % 7)); ini = iso(l); fin = iso(masDias(l, 6));
+    const d = masDias(l, 6); titulo = `${l.getUTCDate()} ${MES_C[l.getUTCMonth()]} – ${d.getUTCDate()} ${MES_C[d.getUTCMonth()]}`; }
+  else { const a = new Date(Date.UTC(r.getUTCFullYear(), r.getUTCMonth(), 1)), b = new Date(Date.UTC(r.getUTCFullYear(), r.getUTCMonth() + 1, 0));
+    ini = iso(a); fin = iso(b); titulo = `${MESES_L[r.getUTCMonth()]} ${r.getUTCFullYear()}`; }
+  const lista = Reservas.todas().filter(c => c.fecha >= ini && c.fecha <= fin);
+  const ahoraM = crAhora(); const minA = ahoraM.getUTCHours() * 60 + ahoraM.getUTCMinutes();
+  const hecha = c => c.fecha < hoy || (c.fecha === hoy && c.ini + c.dur <= minA);
+  const total = lista.reduce((t, c) => t + montoCita(c), 0);
+  const real = lista.filter(hecha).reduce((t, c) => t + montoCita(c), 0);
+  const horas = lista.reduce((t, c) => t + c.dur, 0) / 60;
+  const porServ = {}; for (const c of lista) { const k = nombreCorto({ nombre: c.servicio }); porServ[k] = porServ[k] || { n: 0, m: 0 }; porServ[k].n++; porServ[k].m += montoCita(c); }
+  const servs = Object.entries(porServ).sort((a, b) => b[1].m - a[1].m); const maxS = Math.max(1, ...servs.map(x => x[1].m));
+  const porLug = Object.keys(LUGARES).map(k => [k, lista.filter(c => c.lugar === k).reduce((t, c) => t + montoCita(c), 0)]);
+  // barras por día
+  const dias = []; for (let d = deIso(ini); iso(d) <= fin; d = masDias(d, 1)) dias.push(iso(d));
+  const porDia = dias.map(f => [f, lista.filter(c => c.fecha === f).reduce((t, c) => t + montoCita(c), 0)]);
+  const maxD = Math.max(1, ...porDia.map(x => x[1]));
+  const sinPrecio = lista.filter(c => !montoCita(c)).length;
+  return `<div class="ing">
+    <div class="cal-bar">
+      <div class="cal-vistas" style="grid-template-columns:1fr 1fr">${[["semana", "Semana"], ["mes", "Mes"]].map(([k, t]) => `<button class="${nIng.vista === k ? "si" : ""}" data-iv="${k}">${t}</button>`).join("")}</div>
+      <div class="cal-nav"><button data-inav="0" class="hoy">Hoy</button><button data-inav="-1" aria-label="Anterior">‹</button><button data-inav="1" aria-label="Siguiente">›</button><b>${titulo}</b></div>
+    </div>
+    <div class="ing-total"><small>Total estimado</small><b>${colones(total)}</b>
+      <span>${lista.length} cita${lista.length === 1 ? "" : "s"} · ${horas.toLocaleString("es-CR", { maximumFractionDigits: 1 })} h</span></div>
+    <div class="ing-kpis">
+      <div><small>Ya atendidas</small><b>${colones(real)}</b></div>
+      <div><small>Por atender</small><b>${colones(total - real)}</b></div>
+      <div><small>Promedio por cita</small><b>${colones(lista.length ? total / lista.length : 0)}</b></div>
+    </div>
+    <div class="ing-box"><h4>Por día</h4>
+      <div class="ing-dias id-${nIng.vista}">${porDia.map(([f, m]) => { const d = deIso(f); return `<div class="ing-dia${f === hoy ? " hoy" : ""}" title="${fechaLarga(f)}: ${colones(m)}">
+        <span class="v">${m && nIng.vista === "semana" ? colones(m).replace("₡", "") : ""}</span><i style="height:${Math.round(m / maxD * 100)}%"></i><small>${nIng.vista === "semana" ? DIAS_C[d.getUTCDay()] : (d.getUTCDate() % 5 === 1 || d.getUTCDate() === 1 ? d.getUTCDate() : "")}</small></div>`; }).join("")}</div></div>
+    <div class="ing-box"><h4>Por servicio</h4>
+      ${servs.length ? servs.map(([n, v]) => `<div class="ing-fila"><div class="t"><span>${esc(n)} <em>× ${v.n}</em></span><b>${colones(v.m)}</b></div><div class="bar"><i style="width:${Math.round(v.m / maxS * 100)}%"></i></div></div>`).join("") : `<p class="ing-vacio">No hay citas en este periodo.</p>`}</div>
+    <div class="ing-box"><h4>Por lugar</h4><div class="ing-lug">${porLug.map(([k, m]) => `<div class="${colorLugar(k)}"><small>📍 ${LUGARES[k].nombre}</small><b>${colones(m)}</b></div>`).join("")}</div></div>
+    <p class="prueba">Montos estimados con los precios de la página, proporcionales a la duración reservada. No incluyen descuentos, propinas ni cancelaciones de último momento.${sinPrecio ? ` ${sinPrecio} cita${sinPrecio === 1 ? "" : "s"} sin precio conocido.` : ""}</p>
+  </div>`;
+}
 let nVista = "citas";
 function pintarNicole(){
   const box = $("#nicole");
@@ -1304,7 +1406,8 @@ function pintarNicole(){
     return;
   }
   const sugs = Reservas.sugerencias();
-  const pest = tarjetaAvisos() + `<div class="seg2" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px"><button class="chip${nVista === "citas" ? " si" : ""}" data-nv="citas">Citas</button><button class="chip${nVista === "sug" ? " si" : ""}" data-nv="sug">Sugerencias${sugs.length ? ` (${sugs.length})` : ""}</button><button class="chip${nVista === "gal" ? " si" : ""}" data-nv="gal">Galería</button></div>`;
+  const pest = tarjetaAvisos() + `<div class="seg2 n-tabs"><button class="chip${nVista === "citas" ? " si" : ""}" data-nv="citas">Citas</button><button class="chip${nVista === "ing" ? " si" : ""}" data-nv="ing">Ingresos</button><button class="chip${nVista === "sug" ? " si" : ""}" data-nv="sug">Sugerencias${sugs.length ? ` (${sugs.length})` : ""}</button><button class="chip${nVista === "gal" ? " si" : ""}" data-nv="gal">Galería</button></div>`;
+  if (nVista === "ing") { box.innerHTML = pest + `<div style="display:flex;justify-content:flex-end;margin:-6px 0 10px"><button class="chip" id="n-salir">Salir</button></div>` + pintarIngresos(); return; }
   if (nVista === "gal") {
     const l = Reservas.galeria() || [];
     box.innerHTML = pest + `
@@ -1349,7 +1452,7 @@ function pintarNicole(){
     if (c.fecha !== dia) { dia = c.fecha; html += `<div class="dia-t">${c.fecha === hoy ? "Hoy · " : ""}${fechaLarga(c.fecha)}</div>`; }
     const tel = String(c.tel).replace(/\D/g, ""); const t506 = tel.length === 8 ? "506" + tel : tel;
     html += `<div class="cita-a"><div class="h"><b>${esc(c.nombre)}</b><span>${h12m(c.ini)} – ${h12m(c.ini + c.dur)}</span></div>
-      <p><b style="color:var(--oro3);font-weight:500">📍 ${LUGARES[c.lugar]?.nombre || "Lugar sin definir"}</b><br>${esc(c.servicio)} · ${durTxt(c.dur)}${c.nota ? `<br><i>“${esc(c.nota)}”</i>` : ""}</p>
+      <p><b style="color:var(--oro3);font-weight:500">📍 ${LUGARES[c.lugar]?.nombre || "Lugar sin definir"}</b><br>${esc(c.servicio)} · ${durTxt(c.dur)}${c.nota ? `<br><i>“${esc(c.nota)}”</i>` : ""}${c.apuntes ? `<br><span class="ap-mini">🗒️ ${esc(c.apuntes)}</span>` : ""}</p>
       <div class="acc"><a href="https://wa.me/${t506}" target="_blank" rel="noopener">WhatsApp</a><a href="tel:${tel}">Llamar</a>${enCalendario(c) ? `<button data-cal="${c.id}" style="color:#4f8a5f;border-color:#bfd9c6">✓ En mi calendario</button>` : `<button data-cal="${c.id}">📅 A mi calendario</button>`}<button class="rojo" data-cancel="${c.id}">Cancelar cita</button></div></div>`;
   }
   box.innerHTML = html;
@@ -1375,6 +1478,10 @@ $("#nicole").addEventListener("click", async e => {
   }
   if (b.dataset.nv) { nVista = b.dataset.nv; pintarNicole(); return; }
   if (b.dataset.cv) { nCal.vista = b.dataset.cv; pintarNicole(); return; }
+  if (b.dataset.iv) { nIng.vista = b.dataset.iv; pintarNicole(); return; }
+  if (b.dataset.inav !== undefined) { const n = +b.dataset.inav, r = deIso(nIng.ref);
+    nIng.ref = n === 0 ? iso(crAhora()) : nIng.vista === "mes" ? iso(new Date(Date.UTC(r.getUTCFullYear(), r.getUTCMonth() + n, 1))) : iso(masDias(r, n * 7));
+    pintarNicole(); return; }
   if (b.dataset.cnav !== undefined) { const n = +b.dataset.cnav, r = deIso(nCal.ref);
     if (n === 0) nCal.ref = iso(crAhora());
     else if (nCal.vista === "mes") nCal.ref = iso(new Date(Date.UTC(r.getUTCFullYear(), r.getUTCMonth() + n, 1)));

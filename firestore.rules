@@ -19,6 +19,10 @@ service cloud.firestore {
         && request.resource.data.nota is string && request.resource.data.nota.size() <= 300
         && request.resource.data.creada == request.time;
       allow read, delete: if esNicole();
+      // Nicole puede agregar sus anotaciones privadas a una cita
+      allow update: if esNicole()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['apuntes'])
+        && request.resource.data.apuntes is string && request.resource.data.apuntes.size() <= 1000;
     }
 
     // Espacios ocupados: todos los ven (sin datos personales). Un espacio ya tomado no se puede volver a tomar.
