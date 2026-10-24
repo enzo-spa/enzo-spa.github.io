@@ -934,7 +934,7 @@ function pintarAgenda(){
       <div class="resumen"><small>Tu cita</small><b>${ag.ini != null ? `${esc(s ? s.nombre : "Masaje (por definir)")}${ag.lugar ? " · " + LUGARES[ag.lugar].nombre : ""}<br>${fechaLarga(ag.fecha)}<br>${h12m(ag.ini)} a ${h12m(ag.ini + ag.dur)} · ${durTxt(ag.dur)}` : ""}</b></div>
       <div class="campo"><label for="a-nom">Nombre</label><input id="a-nom" maxlength="50" autocomplete="name" placeholder="Tu nombre"></div>
       <div class="campo"><label for="a-tel">Celular / WhatsApp</label><input id="a-tel" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="Ej.: 8888 7777"></div>
-      <div class="campo"><label for="a-nota">¿Algo que Nicole deba saber? (opcional)</label><textarea id="a-nota" rows="2" maxlength="300" placeholder="Ej.: tengo una lesión en el hombro"></textarea></div>
+      <div class="campo"><label for="a-nota">¿Algo que Nicole deba saber? (opcional)</label><textarea id="a-nota" rows="2" maxlength="300" placeholder="¿Tienes alguna lesión?"></textarea></div>
       <p class="error" id="a-err"></p>
       <button class="btn btn-oro" style="width:100%;padding:16px" id="a-ok">Confirmar reserva</button>
       ${Reservas.prueba ? `<p class="prueba">Versión de prueba: tu reserva se guarda en este celular. Al activarla, todas las personas verán ese espacio como reservado.</p>` : ""}
