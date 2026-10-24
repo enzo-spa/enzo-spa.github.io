@@ -578,6 +578,7 @@ section.panel{padding:0}
 .mes-cerr.par{color:#8a6a1c;font-weight:500}
 .cerr-h{position:absolute;left:0;right:0;z-index:0;background:repeating-linear-gradient(135deg,rgba(163,68,58,.08) 0 6px,rgba(163,68,58,.15) 6px 12px);border-top:1px solid rgba(163,68,58,.35);border-bottom:1px solid rgba(163,68,58,.35);overflow:hidden}
 .cerr-h span{display:block;font-size:11px;color:#a3443a;padding:2px 6px;font-weight:500}
+.cie-res{font-size:14px;color:#3c352e;background:#fff;border:1px dashed #d6cdbf;border-radius:10px;padding:8px 10px}
 </style>
 </head>
 <body>
@@ -1434,17 +1435,25 @@ const fechaCorta = f => { const d = deIso(f); return `${DIAS_C[d.getUTCDay()].to
 const rangoTxt = c => (c.desde === c.hasta ? fechaCorta(c.desde) : `${fechaCorta(c.desde)} al ${fechaCorta(c.hasta)}`) + (esParcial(c) ? ` · ${h12m(c.ini)} a ${h12m(c.fin)}` : "");
 const citasEnCierre = c => Reservas.todas().filter(x => x.fecha >= c.desde && x.fecha <= c.hasta && (!esParcial(c) || (x.ini < c.fin && x.ini + x.dur > c.ini)));
 let nCie = { abierto: false };
+function resumenCierre(){
+  const hoy = iso(crAhora()), a = nCie.desde || hoy, z = nCie.hasta || a;
+  if (z < a) return "⚠️ La fecha final es antes de la inicial.";
+  const n = Math.round((deIso(z) - deIso(a)) / 864e5) + 1;
+  const horas = nCie.horas ? `, de ${h12(nCie.hini || "12:00")} a ${h12(nCie.hfin || "14:00")}` : "";
+  return `Se va a cerrar: <b>${a === z ? fechaCorta(a) : `${fechaCorta(a)} al ${fechaCorta(z)}`}</b> (${n} día${n === 1 ? "" : "s"}${horas})`;
+}
 function pintarCierres(){
   const hoy = iso(crAhora());
   const vig = Reservas.cierres().filter(c => c.hasta >= hoy);
   return `<section class="cie">
     <div class="cie-h"><h4>🚫 Cierres y días libres</h4><button class="chip${nCie.abierto ? " si" : ""}" data-cie-toggle>${nCie.abierto ? "Cancelar" : "+ Agregar cierre"}</button></div>
     ${nCie.abierto ? `<div class="cie-form">
-      <div class="cie-rap"><button class="chip" data-cie-rap="dia">Solo un día</button><button class="chip" data-cie-rap="semana">Una semana</button><button class="chip" data-cie-rap="finde">Fin de semana</button></div>
+      <div class="cie-rap">${[["dia", "Solo un día"], ["semana", "Una semana"], ["finde", "Fin de semana"]].map(([k, t]) => `<button class="chip${nCie.rap === k ? " si" : ""}" data-cie-rap="${k}">${nCie.rap === k ? "✓ " : ""}${t}</button>`).join("")}</div>
       <div class="seg2 cie-tipo"><button class="chip${!nCie.horas ? " si" : ""}" data-cie-tipo="dia">Todo el día</button><button class="chip${nCie.horas ? " si" : ""}" data-cie-tipo="horas">Solo unas horas</button></div>
       <div class="cie-fechas"><label>${nCie.horas ? "Desde el día" : "Desde"}<input type="date" id="cie-desde" min="${hoy}" value="${nCie.desde || hoy}"></label><label>${nCie.horas ? "Hasta el día" : "Hasta"}<input type="date" id="cie-hasta" min="${hoy}" value="${nCie.hasta || nCie.desde || hoy}"></label></div>
       ${nCie.horas ? `<div class="cie-fechas"><label>De la hora<input type="time" id="cie-hini" step="1800" value="${nCie.hini || "12:00"}"></label><label>A la hora<input type="time" id="cie-hfin" step="1800" value="${nCie.hfin || "14:00"}"></label></div>
       <p class="conf-nota">Esas horas se bloquean en cada día del rango. Ej.: almuerzo de 12:00 a 2:00 p. m. toda la semana.</p>` : ""}
+      <p class="cie-res" id="cie-res">${resumenCierre()}</p>
       <label class="cie-mot">Motivo (opcional, lo ven los clientes)<input id="cie-motivo" maxlength="80" placeholder="Ej.: Vacaciones, feriado, capacitación" value="${esc(nCie.motivo || "")}"></label>
       <p class="error" id="cie-err"></p>
       <button class="btn btn-oro" style="width:100%" id="cie-ok">Cerrar esas fechas</button>
@@ -1750,7 +1759,7 @@ $("#nicole").addEventListener("click", async e => {
   if (b.dataset.cieTipo) { nCie.horas = b.dataset.cieTipo === "horas"; pintarNicole(); return; }
   if (b.dataset.cieRap) { const r = b.dataset.cieRap; let a = deIso($("#cie-desde").value || iso(crAhora()));
     if (r === "finde") { while (a.getUTCDay() !== 6) a = masDias(a, 1); }
-    nCie.desde = iso(a); nCie.hasta = iso(masDias(a, r === "semana" ? 6 : r === "finde" ? 1 : 0)); nCie.motivo = $("#cie-motivo").value; pintarNicole(); return; }
+    nCie.desde = iso(a); nCie.hasta = iso(masDias(a, r === "semana" ? 6 : r === "finde" ? 1 : 0)); nCie.motivo = $("#cie-motivo").value; nCie.rap = r; pintarNicole(); return; }
   if (b.id === "cie-ok") {
     const desde = $("#cie-desde").value, hasta = $("#cie-hasta").value, motivo = $("#cie-motivo").value.trim().slice(0, 80);
     const err = t => $("#cie-err").textContent = t;
@@ -1817,7 +1826,10 @@ $("#nicole").addEventListener("click", async e => {
   if (b.dataset.cancel) { if (!confirm("¿Cancelar esta cita? El espacio queda libre otra vez.")) return; try { const estaba = enCalendario(Reservas.todas().find(x => x.id === b.dataset.cancel) || {}); await Reservas.cancelar(b.dataset.cancel); pintarNicole(); toast(estaba ? "Cita cancelada. Bórrala también de tu calendario." : "Cita cancelada"); } catch { toast("No se pudo cancelar. Revisa tu conexión."); } }
 });
 $("#nicole").addEventListener("click", e => { const a = e.target.closest("a[data-enviar-enc]"); if (a) { envMarcar(a.dataset.enviarEnc); setTimeout(pintarNicole, 600); } });
-$("#nicole").addEventListener("input", e => { if (e.target.id === "cie-desde") { nCie.desde = e.target.value; const h = $("#cie-hasta"); if (h && h.value < e.target.value) h.value = e.target.value; nCie.hasta = h?.value; } if (e.target.id === "cie-hasta") nCie.hasta = e.target.value; if (e.target.id === "cie-motivo") nCie.motivo = e.target.value; if (e.target.id === "cie-hini") nCie.hini = e.target.value; if (e.target.id === "cie-hfin") nCie.hfin = e.target.value; });
+$("#nicole").addEventListener("input", e => {
+  if (["cie-desde", "cie-hasta"].includes(e.target.id) && nCie.rap) { nCie.rap = null; $("#nicole").querySelectorAll("[data-cie-rap]").forEach(b => { b.classList.remove("si"); b.textContent = b.textContent.replace("✓ ", ""); }); }
+  setTimeout(() => { const r = $("#cie-res"); if (r) r.innerHTML = resumenCierre(); }, 0);
+  if (e.target.id === "cie-desde") { nCie.desde = e.target.value; const h = $("#cie-hasta"); if (h && h.value < e.target.value) h.value = e.target.value; nCie.hasta = h?.value; } if (e.target.id === "cie-hasta") nCie.hasta = e.target.value; if (e.target.id === "cie-motivo") nCie.motivo = e.target.value; if (e.target.id === "cie-hini") nCie.hini = e.target.value; if (e.target.id === "cie-hfin") nCie.hfin = e.target.value; });
 $("#nicole").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "n-clave") $("#n-ok").click(); });
 
 // ================== SUGERENCIAS ==================
