@@ -597,10 +597,8 @@ section.panel{padding:0}
 .hero .bajar{display:none}
 .nav{top:0;top:env(safe-area-inset-top,0px)}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--negro);z-index:31}
-/* barra del menú: sin desplazamiento lateral, todo visible (se acomoda en dos filas en celulares angostos) */
-.nav .fila{flex-wrap:wrap;justify-content:center;overflow:visible;gap:6px 4px;padding:8px 10px}
-.nav button,.nav a{padding:8px 11px;font-size:13.5px}
-.nav .menu{padding:8px 14px}
+/* barra del menú: una sola fila como antes; en iPhone siempre empieza desde "Menú" */
+.nav .fila{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
 /* iPhone: que el logo no quede pegado a la barra de la hora */
 .hero{padding-top:calc(44px + env(safe-area-inset-top,0px))}
 </style>
@@ -2079,6 +2077,15 @@ $("#enc-form").addEventListener("submit", async e => {
 // Atajo de la app: abrir directo "Agendar cita"
 if (location.hash === "#agendar") { history.replaceState(null, "", location.pathname + location.search); setTimeout(() => pedirForma(""), 400); }
 window.__dbg = { get ag(){ return ag; }, get pila(){ return pila; }, pintarAgenda, get R(){ return Reservas; } };
+
+// iPhone: que la barra del menú siempre arranque al inicio (Safari a veces la deja corrida)
+(() => {
+  const f = document.querySelector(".nav .fila"); if (!f) return;
+  const inicio = () => { f.scrollLeft = 0; };
+  inicio(); addEventListener("load", inicio); addEventListener("pageshow", inicio);
+  addEventListener("orientationchange", () => setTimeout(inicio, 300));
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) inicio(); });
+})();
 </script>
 </body>
 </html>
