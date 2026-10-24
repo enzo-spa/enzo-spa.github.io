@@ -553,6 +553,26 @@ section.panel{padding:0}
 .enc-btns .btn{flex:1;padding:11px 10px;font-size:12px}
 .enc-btns .btn-linea{color:var(--tinta);border-color:#25a35a}
 .enc-env-f{display:block;margin-top:6px;font-size:12.5px;color:#8a8076}
+.mes-cerr{display:block;font-size:9px;font-weight:600;color:#a3443a;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mes-d.cie-d{background:#fbeeeb}
+.cie{margin-top:14px;background:#fff;border:1px solid var(--marfil2);border-radius:16px;padding:14px 16px;display:grid;gap:12px}
+.cie-h{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.cie-h h4{font-family:var(--serif);font-size:20px;font-weight:600}
+.cie-h .chip{padding:8px 12px;font-size:13px}
+.cie-form{display:grid;gap:10px;background:#faf7f1;border-radius:12px;padding:12px}
+.cie-rap{display:flex;gap:6px;flex-wrap:wrap}.cie-rap .chip{padding:7px 11px;font-size:13px}
+.cie-fechas{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cie-form label{display:grid;gap:4px;font-size:13px;font-weight:500;color:#5d554c}
+.cie-form input{width:100%;border:1px solid #d6cdbf;border-radius:10px;padding:10px;font:400 15px var(--sans);color:var(--tinta);background:#fff;min-width:0}
+.cie-lista{display:grid;gap:8px}
+.cie-it{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid #f0d5cf;background:#fdf5f3;border-radius:12px;padding:10px 12px}
+.cie-it b{display:block;font-size:15px}
+.cie-it span{font-size:13px;color:#6a6158}
+.cie-it .rojo{border:1px solid #e3c3bd;background:#fff;color:#a3443a;border-radius:999px;padding:6px 12px;font:500 13px var(--sans);cursor:pointer;flex:none}
+.cierres-aviso{max-width:560px;margin:0 auto 12px;display:grid;gap:8px}
+.cierre-pub{background:rgba(201,164,92,.14);border:1px solid rgba(201,164,92,.55);color:var(--marfil);border-radius:14px;padding:12px 16px;display:grid;gap:2px;text-align:center}
+.cierre-pub b{color:var(--oro2);font-weight:500}
+.cierre-pub span{font-size:14px;color:#cfc6b8}
 </style>
 </head>
 <body>
@@ -633,6 +653,7 @@ section.panel{padding:0}
         <h2 class="oro-txt">Horario</h2>
         <p style="color:#a69c8f">Atención solo con cita previa.</p>
       </div>
+      <div id="cierres-aviso" class="cierres-aviso"></div>
       <div class="horario revela" id="tabla-horario"></div>
       <p class="nota">¿Necesitas otro horario? Escríbenos y buscamos un espacio para ti.</p>
     </div>
@@ -865,7 +886,9 @@ const hhmm = m => String(Math.floor(m / 60)).padStart(2, "0") + String(m % 60).p
 const h12m = m => { let a = Math.floor(m / 60), b = m % 60; const pm = a >= 12; a = a % 12 || 12; return `${a}:${String(b).padStart(2, "0")} ${pm ? "p. m." : "a. m."}`; };
 const h12 = h => h12m(aMin(h));
 const fechaLarga = f => { const d = deIso(f); return `${DIAS_L[d.getUTCDay()]} ${d.getUTCDate()} de ${MESES[d.getUTCMonth()]}`; };
-const turnosDe = f => (HORARIO.find(h => h.dias.includes(deIso(f).getUTCDay())) || { turnos: [] }).turnos.map(t => [aMin(t[0]), aMin(t[1])]);
+let CIERRES = [];   // [{id, desde, hasta, motivo}] fechas YYYY-MM-DD, ambas incluidas
+const cierreDe = f => CIERRES.find(c => f >= c.desde && f <= c.hasta);
+const turnosDe = f => cierreDe(f) ? [] : (HORARIO.find(h => h.dias.includes(deIso(f).getUTCDay())) || { turnos: [] }).turnos.map(t => [aMin(t[0]), aMin(t[1])]);
 const durTxt = d => d === 30 ? "30 min" : d === 60 ? "1 hora" : d === 90 ? "1 h 30 min" : d === 120 ? "2 horas" : `${d} min`;
 const nombreCorto = s => { const n = s.nombre.replace(/^Masaje /i, ""); return n.charAt(0).toLocaleUpperCase("es") + n.slice(1); };
 const precioHTML = s => s.precio ? `${esc(s.precio)}${s.antes ? ` <s style="font-size:.7em;color:#9a8f83;font-weight:400">${esc(s.antes)}</s>` : ""}` : "Consultar";
@@ -910,6 +933,9 @@ const ReservasPrueba = (() => {
     async subirFoto(data){ const l = this.galeria() || []; await this.guardarGal([...l, { id:"g" + Date.now().toString(36), tipo:"foto", data, orden: Date.now() }]); },
     async agregarVideo(url, titulo){ const l = this.galeria() || []; await this.guardarGal([...l, { id:"g" + Date.now().toString(36), tipo:"video", url, titulo, orden: Date.now() }]); },
     async borrarGal(id){ await this.guardarGal((this.galeria() || []).filter(x => x.id !== id)); },
+    cierres(){ try { return JSON.parse(localStorage.getItem(KEY + "_cie") || "[]"); } catch { return []; } },
+    async agregarCierre(x){ const l = [...this.cierres(), { ...x, id: "k" + Date.now().toString(36) }]; try { localStorage.setItem(KEY + "_cie", JSON.stringify(l)); } catch {} CIERRES = l; cierresCambiaron(); },
+    async borrarCierre(id){ const l = this.cierres().filter(x => x.id !== id); try { localStorage.setItem(KEY + "_cie", JSON.stringify(l)); } catch {} CIERRES = l; cierresCambiaron(); },
     async moverGal(a, b){ const l = this.galeria() || []; const A = l.find(x => x.id === a), B = l.find(x => x.id === b); [A.orden, B.orden] = [B.orden, A.orden]; await this.guardarGal(l); },
     async guardarApuntes(id, txt){ const l = leer(); const c = l.find(x => x.id === id); if (c) { c.apuntes = txt; guardar(l); } else { const e = ejemplos().find(x => x.id === id); if (e) throw new Error("ejemplo"); } },
     encuestas(){ try { return JSON.parse(localStorage.getItem(KEY + "_enc") || "[]"); } catch { return []; } },
@@ -955,6 +981,9 @@ async function crearReservasFirebase(){
     async subirFoto(data){ await F.addDoc(F.collection(db, "galeria"), { tipo:"foto", data, url:"", titulo:"", orden: Date.now() }); },
     async agregarVideo(url, titulo){ await F.addDoc(F.collection(db, "galeria"), { tipo:"video", data:"", url, titulo, orden: Date.now() }); },
     async borrarGal(id){ await F.deleteDoc(F.doc(db, "galeria", id)); },
+    cierres: () => CIERRES,
+    async agregarCierre(x){ await F.addDoc(F.collection(db, "cierres"), { desde: x.desde, hasta: x.hasta, motivo: x.motivo }); },
+    async borrarCierre(id){ await F.deleteDoc(F.doc(db, "cierres", id)); },
     async moverGal(a, b){ const A = gal.find(x => x.id === a), B = gal.find(x => x.id === b); const w = F.writeBatch(db);
       w.update(F.doc(db, "galeria", a), { orden: B.orden }); w.update(F.doc(db, "galeria", b), { orden: A.orden }); await w.commit(); },
     sugerencias: () => sugs,
@@ -966,6 +995,10 @@ async function crearReservasFirebase(){
     async entrar(clave){ await A.signInWithEmailAndPassword(auth, NICOLE_EMAIL, clave); },
     salir(){ A.signOut(auth); }
   };
+  F.onSnapshot(F.collection(db, "cierres"), snap => {
+    CIERRES = snap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => a.desde.localeCompare(b.desde));
+    cierresCambiaron();
+  }, e => console.warn("cierres", e));
   F.onSnapshot(F.collection(db, "galeria"), snap => {
     gal = snap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => a.orden - b.orden);
     pintarGaleria(); if (pila.includes("p-nicole") && nVista === "gal") pintarNicole();
@@ -1005,7 +1038,7 @@ async function crearReservasFirebase(){
   return R;
 }
 // Mientras Firebase carga, el calendario muestra todo libre pero no deja confirmar.
-const ReservasCargando = { prueba:false, nicole:false, ocupados:() => new Set(), todas:() => [], sugerencias:() => [], galeria:() => null, encuestas:() => [],
+const ReservasCargando = { prueba:false, nicole:false, ocupados:() => new Set(), todas:() => [], cierres:() => CIERRES, async agregarCierre(){ throw new Error("cargando"); }, async borrarCierre(){}, sugerencias:() => [], galeria:() => null, encuestas:() => [],
   async enviarEncuesta(){ throw new Error("cargando"); },
   async enviarSug(){ throw new Error("cargando"); }, async borrarSug(){},
   async reservar(){ throw new Error("cargando"); }, async cancelar(){}, async entrar(){ throw new Error("cargando"); }, salir(){} };
@@ -1249,7 +1282,7 @@ function pintarAgenda(){
       <div class="dias">${dias.map(f => { const d = deIso(f); const n = libresDe(f);
         return `<button class="dia-b${f === ag.fecha ? " si" : ""}" data-a-dia="${f}" ${n < 0 ? "disabled" : ""}><small>${DIAS_C[d.getUTCDay()]}</small><b>${d.getUTCDate()}</b><i class="${n === 0 ? "lleno" : ""}">${n === -2 ? "Cerrado" : n < 0 ? "" : n === 0 ? "Lleno" : n + " libres"}</i></button>`; }).join("")}</div>
       <div class="turno-t">${ag.fecha ? fechaLarga(ag.fecha) : ""}</div>
-      ${!ag.fecha ? `<div class="vacio">No hay días disponibles en esta semana.</div>` :
+      ${!ag.fecha ? `<div class="vacio">${(() => { const c = dias.map(cierreDe).find(Boolean); return c ? `Nicole no atiende del ${rangoTxt(c)}${c.motivo ? ` (${esc(c.motivo)})` : ""}. Prueba la semana siguiente.` : "No hay días disponibles en esta semana."; })()}</div>` :
         !lista.length ? `<div class="vacio">Ya no quedan horas para este día. Elige otro.</div>` :
         turnos.map(([a, b]) => { const items = lista.filter(x => x.turno[0] === a); if (!items.length) return "";
           return `<div class="horas" style="margin-bottom:10px">${items.map(x => {
@@ -1376,8 +1409,35 @@ function pintarListo(box, c){
 }
 
 // ================== ACCESO DE NICOLE ==================
+// ===== Cierres (vacaciones, feriados, días libres) =====
+function cierresCambiaron(){
+  pintarHorario(); estado();
+  if (pila.includes("p-agenda") && !ag.hecho) pintarAgenda();
+  if (pila.includes("p-nicole")) pintarNicole();
+}
+const fechaCorta = f => { const d = deIso(f); return `${DIAS_C[d.getUTCDay()].toLowerCase()} ${d.getUTCDate()} ${MES_C[d.getUTCMonth()]}`; };
+const rangoTxt = c => c.desde === c.hasta ? fechaCorta(c.desde) : `${fechaCorta(c.desde)} al ${fechaCorta(c.hasta)}`;
+let nCie = { abierto: false };
+function pintarCierres(){
+  const hoy = iso(crAhora());
+  const vig = Reservas.cierres().filter(c => c.hasta >= hoy);
+  return `<section class="cie">
+    <div class="cie-h"><h4>🚫 Cierres y días libres</h4><button class="chip${nCie.abierto ? " si" : ""}" data-cie-toggle>${nCie.abierto ? "Cancelar" : "+ Agregar cierre"}</button></div>
+    ${nCie.abierto ? `<div class="cie-form">
+      <div class="cie-rap"><button class="chip" data-cie-rap="dia">Solo un día</button><button class="chip" data-cie-rap="semana">Una semana</button><button class="chip" data-cie-rap="finde">Fin de semana</button></div>
+      <div class="cie-fechas"><label>Desde<input type="date" id="cie-desde" min="${hoy}" value="${nCie.desde || hoy}"></label><label>Hasta<input type="date" id="cie-hasta" min="${hoy}" value="${nCie.hasta || nCie.desde || hoy}"></label></div>
+      <label class="cie-mot">Motivo (opcional, lo ven los clientes)<input id="cie-motivo" maxlength="80" placeholder="Ej.: Vacaciones, feriado, capacitación" value="${esc(nCie.motivo || "")}"></label>
+      <p class="error" id="cie-err"></p>
+      <button class="btn btn-oro" style="width:100%" id="cie-ok">Cerrar esas fechas</button>
+    </div>` : ""}
+    ${vig.length ? `<div class="cie-lista">${vig.map(c => { const n = Reservas.todas().filter(x => x.fecha >= c.desde && x.fecha <= c.hasta).length;
+      return `<div class="cie-it"><div><b>${rangoTxt(c)}</b><span>${c.motivo ? esc(c.motivo) : "Cerrado"}${n ? ` · ⚠️ ${n} cita${n === 1 ? "" : "s"} en esas fechas` : ""}</span></div><button class="rojo" data-cie-borrar="${c.id}">Quitar</button></div>`; }).join("")}</div>`
+      : `<p class="conf-nota">No hay cierres programados. Los días que cierres aparecen como <b>Cerrado</b> en la agenda de los clientes.</p>`}
+  </section>`;
+}
+
 // ===== Calendario de Nicole (vistas Día, Semana, Mes y Lista, como Google Calendar) =====
-let nCal = { vista: "semana", ref: null };
+let nCal = { vista: "mes", ref: null };
 const MESES_L = MESES.map(m => m[0].toUpperCase() + m.slice(1));
 const colorLugar = l => l === "estudio" ? "ev-est" : "ev-spa";
 function rangoHoras(lista){
@@ -1395,7 +1455,7 @@ function barraCal(){
     titulo = l.getUTCMonth() === d.getUTCMonth() ? `${l.getUTCDate()} – ${d.getUTCDate()} ${MES_C[d.getUTCMonth()]} ${d.getUTCFullYear()}` : `${l.getUTCDate()} ${MES_C[l.getUTCMonth()]} – ${d.getUTCDate()} ${MES_C[d.getUTCMonth()]}`; }
   else titulo = fechaLarga(nCal.ref).replace(/^./, c => c.toUpperCase());
   return `<div class="cal-bar">
-    <div class="cal-vistas">${[["dia", "Día"], ["semana", "Semana"], ["mes", "Mes"], ["lista", "Lista"]].map(([k, t]) => `<button class="${nCal.vista === k ? "si" : ""}" data-cv="${k}">${t}</button>`).join("")}</div>
+    <div class="cal-vistas" style="grid-template-columns:repeat(3,1fr)">${[["mes", "Mes"], ["dia", "Día"], ["lista", "Lista"]].map(([k, t]) => `<button class="${nCal.vista === k ? "si" : ""}" data-cv="${k}">${t}</button>`).join("")}</div>
     ${nCal.vista === "lista" ? "" : `<div class="cal-nav"><button data-cnav="0" class="hoy">Hoy</button><button data-cnav="-1" aria-label="Anterior">‹</button><button data-cnav="1" aria-label="Siguiente">›</button><b>${titulo}</b></div>`}
     <div class="cal-ley"><span><i class="ev-spa"></i>Spa</span><span><i class="ev-est"></i>Estudio</span></div>
   </div>`;
@@ -1412,8 +1472,8 @@ function pintarCal(todas){
       const d = masDias(inicio, i), f = iso(d), l = porDia(f), fuera = d.getUTCMonth() !== ref.getUTCMonth();
       if (i === 35 && fuera) break;
       const cerrado = !turnosDe(f).length;
-      celdas += `<button class="mes-d${fuera ? " fuera" : ""}${cerrado ? " cerr" : ""}" data-cdia="${f}">
-        <span class="n${f === hoy ? " hoy" : ""}">${d.getUTCDate()}</span>
+      celdas += `<button class="mes-d${fuera ? " fuera" : ""}${cerrado ? " cerr" : ""}${cierreDe(f) ? " cie-d" : ""}" data-cdia="${f}">
+        <span class="n${f === hoy ? " hoy" : ""}">${d.getUTCDate()}</span>${cierreDe(f) ? `<span class="mes-cerr">cerrado</span>` : ""}
         ${l.slice(0, 2).map(c => `<span class="mes-ev ${colorLugar(c.lugar)}">${h12m(c.ini).replace(/:00| /g, "").replace("p.m.", "p").replace("a.m.", "a")} ${esc(c.nombre.split(" ")[0])}</span>`).join("")}
         ${l.length > 2 ? `<span class="mas">+${l.length - 2} más</span>` : ""}</button>`;
     }
@@ -1618,7 +1678,7 @@ function pintarNicole(){
   const hoy = iso(crAhora());
   if (!nCal.ref) nCal.ref = hoy;
   if (nCal.vista !== "lista") {
-    box.innerHTML = pest + `` + barraCal() + pintarCal(Reservas.todas());
+    box.innerHTML = pest + barraCal() + pintarCal(Reservas.todas()) + pintarCierres();
     const ah = box.querySelector(".es-hoy .ahora"); if (ah && nCal.vista !== "mes") setTimeout(() => ah.scrollIntoView({ block:"center" }), 50);
     return;
   }
@@ -1662,6 +1722,23 @@ $("#nicole").addEventListener("click", async e => {
     try { await navigator.clipboard.writeText(url); toast("Link copiado. Pégalo en WhatsApp."); } catch { prompt("Copia este link:", url); }
     envMarcar(c.id); setTimeout(pintarNicole, 300); return; }
   if (b.dataset.cv) { nCal.vista = b.dataset.cv; pintarNicole(); return; }
+  if (b.hasAttribute("data-cie-toggle")) { nCie = { abierto: !nCie.abierto }; pintarNicole(); if (nCie.abierto) setTimeout(() => $("#nicole .cie")?.scrollIntoView({ behavior:"smooth", block:"start" }), 50); return; }
+  if (b.dataset.cieRap) { const r = b.dataset.cieRap; let a = deIso($("#cie-desde").value || iso(crAhora()));
+    if (r === "finde") { while (a.getUTCDay() !== 6) a = masDias(a, 1); }
+    nCie.desde = iso(a); nCie.hasta = iso(masDias(a, r === "semana" ? 6 : r === "finde" ? 1 : 0)); nCie.motivo = $("#cie-motivo").value; pintarNicole(); return; }
+  if (b.id === "cie-ok") {
+    const desde = $("#cie-desde").value, hasta = $("#cie-hasta").value, motivo = $("#cie-motivo").value.trim().slice(0, 80);
+    const err = t => $("#cie-err").textContent = t;
+    if (!desde || !hasta) return err("Escoge las dos fechas.");
+    if (hasta < desde) return err("La fecha final no puede ser antes de la inicial.");
+    const n = Reservas.todas().filter(x => x.fecha >= desde && x.fecha <= hasta).length;
+    if (n && !confirm(`Hay ${n} cita${n === 1 ? "" : "s"} reservada${n === 1 ? "" : "s"} en esas fechas. No se cancelan solas: avísale a esos clientes. ¿Cerrar igual?`)) return;
+    b.disabled = true;
+    try { await Reservas.agregarCierre({ desde, hasta, motivo }); nCie = { abierto: false }; toast("Fechas cerradas"); pintarNicole(); }
+    catch { b.disabled = false; err("No se pudo guardar. Revisa tu conexión."); }
+    return;
+  }
+  if (b.dataset.cieBorrar) { if (!confirm("¿Quitar este cierre? Esos días vuelven a estar disponibles.")) return; try { await Reservas.borrarCierre(b.dataset.cieBorrar); toast("Cierre quitado"); } catch { toast("No se pudo quitar."); } pintarNicole(); return; }
   if (b.dataset.iv) { nIng.vista = b.dataset.iv; pintarNicole(); return; }
   if (b.dataset.inav !== undefined) { const n = +b.dataset.inav, r = deIso(nIng.ref);
     nIng.ref = n === 0 ? iso(crAhora()) : nIng.vista === "mes" ? iso(new Date(Date.UTC(r.getUTCFullYear(), r.getUTCMonth() + n, 1))) : iso(masDias(r, n * 7));
@@ -1700,6 +1777,7 @@ $("#nicole").addEventListener("click", async e => {
   if (b.dataset.cancel) { if (!confirm("¿Cancelar esta cita? El espacio queda libre otra vez.")) return; try { const estaba = enCalendario(Reservas.todas().find(x => x.id === b.dataset.cancel) || {}); await Reservas.cancelar(b.dataset.cancel); pintarNicole(); toast(estaba ? "Cita cancelada. Bórrala también de tu calendario." : "Cita cancelada"); } catch { toast("No se pudo cancelar. Revisa tu conexión."); } }
 });
 $("#nicole").addEventListener("click", e => { const a = e.target.closest("a[data-enviar-enc]"); if (a) { envMarcar(a.dataset.enviarEnc); setTimeout(pintarNicole, 600); } });
+$("#nicole").addEventListener("input", e => { if (e.target.id === "cie-desde") { nCie.desde = e.target.value; const h = $("#cie-hasta"); if (h && h.value < e.target.value) h.value = e.target.value; nCie.hasta = h?.value; } if (e.target.id === "cie-hasta") nCie.hasta = e.target.value; if (e.target.id === "cie-motivo") nCie.motivo = e.target.value; });
 $("#nicole").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "n-clave") $("#n-ok").click(); });
 
 // ================== SUGERENCIAS ==================
@@ -1801,12 +1879,18 @@ pintarLugares();
 
 // ================== HORARIO Y ESTADO ==================
 const hoyD = crAhora().getUTCDay();
+function pintarHorario(){
+const hoyF = iso(crAhora()), prox = CIERRES.filter(c => c.hasta >= hoyF && c.desde <= iso(masDias(deIso(hoyF), 45)));
+$("#cierres-aviso").innerHTML = prox.map(c => `<div class="cierre-pub"><b>📅 Cerrado ${c.desde === c.hasta ? "el" : "del"} ${rangoTxt(c)}</b>${c.motivo ? `<span>${esc(c.motivo)}</span>` : ""}</div>`).join("");
 $("#tabla-horario").innerHTML = HORARIO.map(h => `
   <div class="dia${h.dias.includes(hoyD) ? " hoy" : ""}">
     <svg><use href="#${h.sol ? "sol" : "loto"}"/></svg>
     <b>${h.nombre}</b>
     <span>${h.turnos.length ? h.turnos.map(t => `${h12(t[0])} a ${h12(t[1])}`).join("<br>") : "Cerrado"}</span>
   </div>`).join("");
+}
+CIERRES = Reservas.cierres ? Reservas.cierres() : [];
+pintarHorario();
 function estado(){
   const n = crAhora(); const min = n.getUTCHours() * 60 + n.getUTCMinutes(); const tt = turnosDe(iso(n));
   const t = tt.find(([a, b]) => min >= a && min < b); const el = $("#estado");
