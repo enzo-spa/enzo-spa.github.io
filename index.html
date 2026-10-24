@@ -352,6 +352,13 @@ section.panel{padding:0}
 .g-acc button{width:30px;height:30px;border-radius:50%;border:0;background:rgba(246,242,235,.92);color:var(--tinta);font-size:15px;line-height:1;cursor:pointer}
 .g-acc button:disabled{opacity:.35}
 .g-acc .rojo{background:#f3d9d4;color:#a3443a}
+.avisos{display:grid;gap:6px;background:var(--tinta);color:var(--marfil);border-radius:16px;padding:14px 16px;margin-bottom:16px;border:1px solid rgba(201,164,92,.45)}
+.avisos b{font-family:var(--serif);font-size:19px;font-weight:600;color:var(--oro2)}
+.avisos span{font-size:14px;color:#d9d1c4;line-height:1.45}
+.avisos span b{font-family:var(--sans);font-size:14px;color:var(--marfil)}
+.avisos .btn{margin-top:6px;width:100%}
+.avisos.ok{background:#f1f6ee;color:var(--tinta);border-color:#bfd9c6}
+.avisos.ok b{color:#3f7a4f}.avisos.ok span{color:#4a423a}
 </style>
 </head>
 <body>
@@ -702,7 +709,7 @@ async function crearReservasFirebase(){
   const base = "https://www.gstatic.com/firebasejs/10.12.2/";
   const [{ initializeApp }, F, A] = await Promise.all([import(base + "firebase-app.js"), import(base + "firebase-firestore.js"), import(base + "firebase-auth.js")]);
   const app = initializeApp(FIREBASE), db = F.getFirestore(app), auth = A.getAuth(app);
-  let oc = new Set(), citas = [], quitarCitas = null, sugs = [], quitarSugs = null, gal = null;
+  let oc = new Set(), citas = [], quitarCitas = null, sugs = [], quitarSugs = null, gal = null, citasCargadas = false, sugsCargadas = false;
   const R = {
     prueba: false, nicole: false,
     ocupados: () => oc,
@@ -751,12 +758,17 @@ async function crearReservasFirebase(){
     R.nicole = !!u && u.email === NICOLE_EMAIL;
     if (quitarCitas) { quitarCitas(); quitarCitas = null; citas = []; }
     if (quitarSugs) { quitarSugs(); quitarSugs = null; sugs = []; }
+    citasCargadas = sugsCargadas = false;
     if (R.nicole) quitarSugs = F.onSnapshot(F.collection(db, "sugerencias"), snap => {
+      const nuevasS = sugsCargadas ? snap.docs.filter(d => !sugs.some(x => x.id === d.id)) : []; sugsCargadas = true;
+      for (const d of nuevasS) { const v = d.data(); avisoLocal("Nueva sugerencia" + (v.nombre ? " de " + v.nombre : ""), String(v.texto || "").slice(0, 120), "sug-" + d.id); }
       sugs = snap.docs.map(d => { const v = d.data(); return { id:d.id, ...v, fecha: v.fecha?.toMillis ? v.fecha.toMillis() : Date.now() }; }).sort((a, b) => b.fecha - a.fecha);
       if (pila.includes("p-nicole")) pintarNicole();
     }, e => console.warn("sugerencias", e));
     if (R.nicole) quitarCitas = F.onSnapshot(F.query(F.collection(db, "citas"), F.where("fecha", ">=", iso(crAhora()))), snap => {
-      const antes = citas.length; citas = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      const nuevas = citas.length || citasCargadas ? snap.docs.filter(d => !citas.some(c => c.id === d.id)).map(d => ({ id:d.id, ...d.data() })) : [];
+      citas = snap.docs.map(d => ({ id:d.id, ...d.data() })); citasCargadas = true;
+      for (const c of nuevas) avisoLocal(`Nueva cita en ${LUGARES[c.lugar]?.nombre || "Enzō"}: ${c.nombre}`, `${c.servicio} · ${fechaLarga(c.fecha)} · ${h12m(c.ini)}`, "cita-" + c.id);
       if (pila.includes("p-nicole")) pintarNicole();
       if ("setAppBadge" in navigator) { try { navigator.setAppBadge(citas.filter(c => c.fecha === iso(crAhora())).length); } catch {} }
     }, e => console.warn("citas", e));
@@ -769,6 +781,26 @@ const ReservasCargando = { prueba:false, nicole:false, ocupados:() => new Set(),
   async enviarSug(){ throw new Error("cargando"); }, async borrarSug(){},
   async reservar(){ throw new Error("cargando"); }, async cancelar(){}, async entrar(){ throw new Error("cargando"); }, salir(){} };
 let Reservas = FIREBASE ? ReservasCargando : ReservasPrueba;
+
+// ===== Notificaciones del celular (solo para Nicole, con la app abierta o en segundo plano) =====
+const soportaAvisos = "Notification" in window && "serviceWorker" in navigator;
+const appInstalada = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+async function avisoLocal(titulo, cuerpo, tag){
+  if (!soportaAvisos || Notification.permission !== "granted") return;
+  const op = { body: cuerpo, icon: "icon-192.png", badge: "icon-192.png", tag, data: { url: location.href.split("#")[0] } };
+  try { const reg = await navigator.serviceWorker.getRegistration(); if (reg) return reg.showNotification(titulo, op); } catch {}
+  try { new Notification(titulo, op); } catch {}
+}
+function tarjetaAvisos(){
+  if (!soportaAvisos) {
+    if (esIOS && !appInstalada()) return `<div class="avisos"><b>🔔 Avisos de citas nuevas</b><span>En iPhone, primero instala la app: toca <b>Compartir</b> y luego <b>Agregar a inicio</b>. Ábrela desde el ícono y entra aquí otra vez.</span></div>`;
+    return "";
+  }
+  const p = Notification.permission;
+  if (p === "granted") return `<div class="avisos ok"><b>🔔 Notificaciones activadas</b><span>Te avisamos de citas y sugerencias nuevas en este celular.</span></div>`;
+  if (p === "denied") return `<div class="avisos"><b>🔕 Notificaciones bloqueadas</b><span>Para activarlas, ve a los ajustes del navegador o de la app, busca <b>Notificaciones</b> y permite las de Enzō Spa.</span></div>`;
+  return `<div class="avisos"><b>🔔 ¿Quieres que te avisemos?</b><span>Recibe una notificación en este celular cada vez que alguien reserve o deje una sugerencia.</span><button class="btn btn-oro" id="n-avisos">Activar notificaciones</button></div>`;
+}
 
 // Link que abre la página y agrega la cita al calendario del celular
 function linkCalendario(c){
@@ -1049,10 +1081,10 @@ function pintarNicole(){
     return;
   }
   const sugs = Reservas.sugerencias();
-  const pest = `<div class="seg2" style="margin-bottom:16px"><button class="chip${nVista === "citas" ? " si" : ""}" data-nv="citas">Citas</button><button class="chip${nVista === "sug" ? " si" : ""}" data-nv="sug">Sugerencias${sugs.length ? ` (${sugs.length})` : ""}</button><button class="chip${nVista === "gal" ? " si" : ""}" data-nv="gal">Galería</button></div>`;
+  const pest = tarjetaAvisos() + `<div class="seg2" style="margin-bottom:16px"><button class="chip${nVista === "citas" ? " si" : ""}" data-nv="citas">Citas</button><button class="chip${nVista === "sug" ? " si" : ""}" data-nv="sug">Sugerencias${sugs.length ? ` (${sugs.length})` : ""}</button><button class="chip${nVista === "gal" ? " si" : ""}" data-nv="gal">Galería</button></div>`;
   if (nVista === "gal") {
     const l = Reservas.galeria() || [];
-    box.innerHTML = pest.replace('class="seg2"', 'class="seg2" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px"') + `
+    box.innerHTML = pest.replace('class="seg2" style="margin-bottom:16px"', 'class="seg2" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px"') + `
       <div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="chip" id="n-salir">Salir</button></div>
       <div class="paso"><span class="lbl">Agregar fotos</span>
         <div><label class="btn btn-oro" style="width:100%;padding:15px;cursor:pointer;margin:0" for="g-fotos">📷 Subir fotos del celular</label></div>
@@ -1113,6 +1145,11 @@ $("#nicole").addEventListener("click", async e => {
     open(gcal(c, true), "_blank", "noopener"); setTimeout(pintarNicole, 400); return;
   }
   if (b.dataset.nv) { nVista = b.dataset.nv; pintarNicole(); return; }
+  if (b.id === "n-avisos") {
+    try { const r = await Notification.requestPermission(); if (r === "granted") { toast("Notificaciones activadas"); avisoLocal("Enzō Spa", "Así te van a llegar los avisos de citas nuevas.", "prueba"); } }
+    catch {}
+    pintarNicole(); return;
+  }
   if (b.dataset.galBorrar) { if (!confirm("¿Quitar esto de la galería?")) return; try { await Reservas.borrarGal(b.dataset.galBorrar); pintarGaleria(); pintarNicole(); } catch { toast("No se pudo quitar. Revisa tu conexión."); } return; }
   if (b.dataset.galMover) { const [id, dir] = b.dataset.galMover.split(":"); const l = Reservas.galeria() || []; const i = l.findIndex(x => x.id === id), j = i + (+dir);
     if (j < 0 || j >= l.length) return; try { await Reservas.moverGal(id, l[j].id); pintarGaleria(); pintarNicole(); } catch { toast("No se pudo mover."); } return; }
